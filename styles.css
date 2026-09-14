@@ -1,0 +1,884 @@
+/* RSS Subscribe - Obsidian plugin styles */
+
+.rss-subscribe-view {
+  --rss-font-size: 16px;
+  --rss-line-height: 1.7;
+  height: 100%;
+}
+
+.workspace-leaf-content[data-type="rss-subscribe-view"] .rss-subscribe-view,
+.workspace-leaf-content[data-type="rss-subscribe-sidebar"] .rss-subscribe-view {
+  padding: 0;
+}
+
+.rss-subscribe-view .rss-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* ---------- toolbar ---------- */
+
+.rss-subscribe-view .rss-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 6px 10px 5px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Search lives at the top of the left column, above the feed list. */
+.rss-subscribe-view .rss-search-bar {
+  flex: 0 0 auto;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.rss-subscribe-view .rss-search {
+  width: 100%;
+  height: 28px;
+}
+
+.rss-subscribe-view .rss-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.rss-subscribe-view .rss-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  min-width: 0;
+  min-height: 0;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  box-shadow: none;
+  color: var(--icon-color, var(--text-muted));
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-view .rss-icon-button:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.rss-subscribe-view .rss-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rss-subscribe-view .rss-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 3px 10px;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background-color: var(--background-primary);
+  box-shadow: none;
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-view .rss-button:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.rss-subscribe-view .rss-button.rss-button-cta {
+  border-color: var(--interactive-accent);
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.rss-subscribe-view .rss-button.rss-button-cta:hover {
+  border-color: var(--interactive-accent-hover);
+  background-color: var(--interactive-accent-hover);
+}
+
+/* ---------- panes ---------- */
+
+.rss-subscribe-view .rss-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* The width comes from `--rss-list-width`, written by the column drag handle.
+   No `max-width` here: the clamp needs the live container size, so it lives in
+   the view (`clampListWidth`) and is re-applied on every render and resize. */
+.rss-subscribe-view .rss-list-pane {
+  display: flex;
+  flex-direction: column;
+  /* The drag handle writes a pixel count that we compare against `offsetWidth`.
+     `border-box` makes the CSS width and the measured width the same number. */
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  flex-basis: var(--rss-list-width, 300px);
+  min-width: 0;
+  min-height: 0;
+  background-color: var(--background-secondary);
+}
+
+/* The sidebar copy of the list is the whole panel, so it fills the column
+   instead of holding a fixed width. Same specificity as the rule above on
+   purpose — source order is what settles it, so keep it after. */
+.rss-subscribe-view .rss-list-pane-docked {
+  flex: 1 1 auto;
+  flex-basis: auto;
+  width: auto;
+  border-right: none;
+}
+
+/* Same idea for the feed section: the row handle writes `--rss-feed-height`,
+   falling back to the 45% share this pane used to hard-code. `border-box` is
+   load-bearing here — without it the 8px/6px padding is added on top of the
+   stored height, so every drag would start 14px off from `offsetHeight`. */
+.rss-subscribe-view .rss-feed-section {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  height: var(--rss-feed-height, 45%);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 6px 6px;
+}
+
+/* `flex-basis: 0` matters: with `auto` the article list contributes its full
+   content height to the flex base size, the leftover goes negative, and the
+   feed section above gets shrunk right back — the dragged height would be
+   silently ignored. Basis 0 makes the article list take exactly what is left. */
+.rss-subscribe-view .rss-article-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 6px 6px 0;
+}
+
+.rss-subscribe-view .rss-article-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 14px;
+}
+
+.rss-subscribe-view .rss-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- drag handles ---------- */
+
+/* Both handles are real separators: focusable, arrow-key resizable, and
+   `touch-action: none` so a touch drag is not swallowed by a scroll gesture.
+   The hairline lives on ::before so the hit area stays bigger than the line. */
+.rss-subscribe-view .rss-resizer {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 1;
+  background: transparent;
+  touch-action: none;
+}
+
+.rss-subscribe-view .rss-resizer::before {
+  content: "";
+  position: absolute;
+  background-color: var(--background-modifier-border);
+  transition: background-color 120ms ease;
+}
+
+.rss-subscribe-view .rss-resizer:hover::before,
+.rss-subscribe-view .rss-resizer.is-dragging::before,
+.rss-subscribe-view .rss-resizer:focus-visible::before {
+  background-color: var(--interactive-accent);
+}
+
+/* The ::before is the focus ring; the default outline would box the hit area. */
+.rss-subscribe-view .rss-resizer:focus-visible {
+  outline: none;
+}
+
+.rss-subscribe-view .rss-resizer-col {
+  width: 5px;
+  cursor: col-resize;
+}
+
+.rss-subscribe-view .rss-resizer-col::before {
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 1px;
+}
+
+.rss-subscribe-view .rss-resizer-col:hover::before,
+.rss-subscribe-view .rss-resizer-col.is-dragging::before,
+.rss-subscribe-view .rss-resizer-col:focus-visible::before {
+  left: 1px;
+  width: 3px;
+}
+
+.rss-subscribe-view .rss-resizer-row {
+  height: 7px;
+  cursor: row-resize;
+}
+
+.rss-subscribe-view .rss-resizer-row::before {
+  left: 0;
+  right: 0;
+  top: 3px;
+  height: 1px;
+}
+
+.rss-subscribe-view .rss-resizer-row:hover::before,
+.rss-subscribe-view .rss-resizer-row.is-dragging::before,
+.rss-subscribe-view .rss-resizer-row:focus-visible::before {
+  top: 2px;
+  height: 3px;
+}
+
+.rss-subscribe-view .rss-resizer.is-hidden {
+  display: none;
+}
+
+/* While dragging, keep the resize cursor under the pointer wherever it goes and
+   stop it selecting reader text. Scoping under `.rss-shell` gives (0,3,0), which
+   beats the buttons' own `cursor: pointer` no matter where this block sits. */
+.rss-subscribe-view.rss-resizing .rss-shell * {
+  user-select: none;
+}
+
+.rss-subscribe-view.rss-resizing-x .rss-shell * {
+  cursor: col-resize;
+}
+
+.rss-subscribe-view.rss-resizing-y .rss-shell * {
+  cursor: row-resize;
+}
+
+/* A 5px hairline is far too thin for a finger. */
+@media (pointer: coarse) {
+  .rss-subscribe-view .rss-resizer-col {
+    width: 14px;
+  }
+
+  .rss-subscribe-view .rss-resizer-col::before {
+    left: 6px;
+  }
+
+  .rss-subscribe-view .rss-resizer-col:hover::before,
+  .rss-subscribe-view .rss-resizer-col.is-dragging::before,
+  .rss-subscribe-view .rss-resizer-col:focus-visible::before {
+    left: 5px;
+    width: 4px;
+  }
+
+  .rss-subscribe-view .rss-resizer-row {
+    height: 14px;
+  }
+
+  .rss-subscribe-view .rss-resizer-row::before {
+    top: 6px;
+  }
+
+  .rss-subscribe-view .rss-resizer-row:hover::before,
+  .rss-subscribe-view .rss-resizer-row.is-dragging::before,
+  .rss-subscribe-view .rss-resizer-row:focus-visible::before {
+    top: 5px;
+    height: 4px;
+  }
+}
+
+/* ---------- collapsible group header ---------- */
+
+/* A real <button>, so it must also opt out of Obsidian's bare
+   `button { height: var(--input-height); white-space: nowrap }` rule.
+   padding-left + chevron width + gap = 22px, which lines the group name up
+   with the feed labels below it. */
+.rss-subscribe-view .rss-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 6px 0 2px;
+  padding: 4px 8px 4px 3px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: var(--font-ui-smaller);
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-view .rss-group-toggle:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.rss-subscribe-view .rss-group-toggle.is-collapsed {
+  color: var(--text-muted);
+}
+
+.rss-subscribe-view .rss-group-toggle:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+
+.rss-subscribe-view .rss-group-chevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-faint);
+  transition: transform 120ms ease;
+}
+
+.rss-subscribe-view .rss-group-chevron svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* One icon for both states: turn the down-chevron a quarter turn to point right. */
+.rss-subscribe-view .rss-group-toggle.is-collapsed .rss-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.rss-subscribe-view .rss-group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rss-subscribe-view .rss-group-count {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+}
+
+/* `hidden` alone would lose to any `display` we put on this wrapper later. */
+.rss-subscribe-view .rss-group-body[hidden] {
+  display: none;
+}
+
+/* ---------- rows ---------- */
+
+.rss-subscribe-view .rss-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  /* Opt out of Obsidian's bare `button { height: var(--input-height) }` (30px). */
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 1px 0;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-view .rss-row:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.rss-subscribe-view .rss-row.is-active {
+  background-color: var(--background-modifier-hover);
+  box-shadow: inset 2px 0 0 var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+/* The bare `button` rule sets `outline: none`; rows are keyboard-reachable, so
+   put a visible focus ring back. */
+.rss-subscribe-view .rss-row:focus-visible,
+.rss-subscribe-view .rss-article-row:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+
+.rss-subscribe-view .rss-icon-button:focus-visible,
+.rss-subscribe-view .rss-button:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+.rss-subscribe-view .rss-row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rss-subscribe-view .rss-row-count {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+}
+
+.rss-subscribe-view .rss-feed-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-faint);
+}
+
+.rss-subscribe-view .rss-feed-dot.is-error {
+  background-color: var(--text-error);
+}
+
+/* Obsidian's bare `button` rule (specificity 0,0,1) forces every button to
+   `height: var(--input-height)` (30px) and `white-space: nowrap`. We beat it on
+   padding but must opt out of both explicitly, otherwise the row is clamped to
+   30px while its content needs ~38px — the meta line spills onto the next row
+   and the 2-line title clamp can never produce a second line. */
+.rss-subscribe-view .rss-article-row {
+  display: grid;
+  grid-template-columns: 6px minmax(0, 1fr) auto;
+  column-gap: 8px;
+  align-items: start;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  white-space: normal;
+  padding: 9px 10px 10px;
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-view .rss-article-row:last-child {
+  border-bottom-color: transparent;
+}
+
+.rss-subscribe-view .rss-article-row:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.rss-subscribe-view .rss-article-row.is-active {
+  background-color: var(--background-modifier-hover);
+  box-shadow: inset 2px 0 0 var(--interactive-accent);
+}
+
+/* Unread marker keeps its slot when read so titles stay on one vertical line. */
+.rss-subscribe-view .rss-unread-dot {
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background-color: var(--interactive-accent);
+}
+
+.rss-subscribe-view .rss-article-row:not(.is-unread) .rss-unread-dot {
+  background-color: transparent;
+}
+
+.rss-subscribe-view .rss-article-body {
+  min-width: 0;
+}
+
+/* Single line, no wrapping: an overlong title is cut with an ellipsis instead
+   of pushing the row taller. The row sets `white-space: normal` (needed to beat
+   Obsidian's bare `button` rule), so this element has to opt back into `nowrap`
+   explicitly — and `text-overflow` only takes effect together with nowrap +
+   overflow:hidden. A plain block (not `-webkit-box`) is enough for one line. */
+.rss-subscribe-view .rss-article-title {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+}
+
+.rss-subscribe-view .rss-article-row.is-unread .rss-article-title {
+  color: var(--text-normal);
+  font-weight: var(--font-medium);
+}
+
+.rss-subscribe-view .rss-article-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.35;
+}
+
+.rss-subscribe-view .rss-article-source {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rss-subscribe-view .rss-article-time {
+  flex: 0 0 auto;
+}
+
+.rss-subscribe-view .rss-article-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--color-yellow, var(--text-accent));
+}
+
+.rss-subscribe-view .rss-article-star svg {
+  width: 13px;
+  height: 13px;
+}
+
+.rss-subscribe-view .rss-dot-sep {
+  color: var(--text-faint);
+}
+
+/* ---------- reader ---------- */
+
+.rss-subscribe-view .rss-reader-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rss-subscribe-view .rss-reader-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 12px 20px 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.rss-subscribe-view .rss-reader-titlerow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rss-subscribe-view .rss-reader-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--text-normal);
+  font-size: 1.15em;
+  font-weight: var(--font-semibold);
+  line-height: 1.35;
+}
+
+.rss-subscribe-view .rss-reader-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.rss-subscribe-view .rss-reader-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.rss-subscribe-view .rss-saved-hint {
+  color: var(--text-accent);
+}
+
+.rss-subscribe-view .rss-reader-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px 48px;
+}
+
+.rss-subscribe-view .rss-reader-status {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  padding: 4px 0 10px;
+}
+
+.rss-subscribe-view .rss-reader-status.is-pending {
+  color: var(--text-accent);
+}
+
+.rss-subscribe-view .rss-content {
+  color: var(--text-normal);
+  font-size: var(--rss-font-size);
+  line-height: var(--rss-line-height);
+  overflow-wrap: break-word;
+}
+
+.rss-subscribe-view .rss-content p,
+.rss-subscribe-view .rss-content div {
+  margin: 0 0 1em;
+}
+
+.rss-subscribe-view .rss-content h1,
+.rss-subscribe-view .rss-content h2,
+.rss-subscribe-view .rss-content h3,
+.rss-subscribe-view .rss-content h4,
+.rss-subscribe-view .rss-content h5,
+.rss-subscribe-view .rss-content h6 {
+  margin: 1.4em 0 0.6em;
+  line-height: 1.3;
+}
+
+.rss-subscribe-view .rss-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-s);
+}
+
+.rss-subscribe-view .rss-content img.is-broken {
+  display: none;
+}
+
+.rss-subscribe-view .rss-content a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.rss-subscribe-view .rss-content a:hover {
+  text-decoration: underline;
+}
+
+.rss-subscribe-view .rss-content ul,
+.rss-subscribe-view .rss-content ol {
+  margin: 0 0 1em;
+  padding-inline-start: 1.6em;
+}
+
+.rss-subscribe-view .rss-content li {
+  margin-bottom: 0.3em;
+}
+
+.rss-subscribe-view .rss-content blockquote {
+  margin: 1em 0;
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--background-modifier-border);
+  color: var(--text-muted);
+}
+
+.rss-subscribe-view .rss-content pre {
+  margin: 0 0 1em;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border-radius: var(--radius-s);
+  background-color: var(--code-background);
+  font-size: 0.88em;
+  line-height: 1.5;
+}
+
+.rss-subscribe-view .rss-content pre code {
+  padding: 0;
+  background: none;
+}
+
+.rss-subscribe-view .rss-content code {
+  padding: 1px 4px;
+  border-radius: var(--radius-s);
+  background-color: var(--code-background);
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+}
+
+.rss-subscribe-view .rss-content table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+
+.rss-subscribe-view .rss-content th,
+.rss-subscribe-view .rss-content td {
+  padding: 6px 8px;
+  border: 1px solid var(--background-modifier-border);
+  text-align: left;
+}
+
+.rss-subscribe-view .rss-content th {
+  background-color: var(--background-secondary);
+  font-weight: var(--font-semibold);
+}
+
+.rss-subscribe-view .rss-content hr {
+  margin: 1.6em 0;
+  border: none;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.rss-subscribe-view .rss-reader-footnote {
+  flex: 0 0 auto;
+  padding: 6px 20px 10px;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+/* ---------- empty states ---------- */
+
+.rss-subscribe-view .rss-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.rss-subscribe-view .rss-empty-small {
+  padding: 14px 10px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.rss-subscribe-view .rss-empty-title {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium);
+}
+
+.rss-subscribe-view .rss-empty-hint {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.5;
+}
+
+.rss-subscribe-view .rss-empty-actions {
+  margin-top: 6px;
+}
+
+/* ---------- single pane mode ---------- */
+
+.rss-subscribe-view .rss-back-button {
+  display: none;
+}
+
+/* Stacked panes: the stored width no longer applies, and the column handle is
+   hidden by the view. `flex-basis: auto` here also cancels the fallback width. */
+.rss-subscribe-view .rss-shell.is-narrow .rss-list-pane {
+  flex: 1 1 auto;
+  max-width: none;
+}
+
+.rss-subscribe-view .rss-shell.is-narrow .rss-reader-pane {
+  display: none;
+}
+
+.rss-subscribe-view .rss-shell.is-narrow.is-narrow-reader .rss-list-pane {
+  display: none;
+}
+
+.rss-subscribe-view .rss-shell.is-narrow.is-narrow-reader .rss-reader-pane {
+  display: flex;
+}
+
+.rss-subscribe-view .rss-shell.is-narrow.is-narrow-reader .rss-back-button {
+  display: inline-flex;
+}
+
+/* ---------- settings tab ---------- */
+
+.rss-subscribe-settings .rss-subscribe-template-input {
+  width: 100%;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+}
+
+.rss-subscribe-settings .rss-subscribe-settings-empty {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.rss-subscribe-file-input {
+  display: none;
+}
+
+/* ---------- add feed modal ---------- */
+
+.rss-add-feed-modal .rss-add-feed-error {
+  margin: 0 0 1em;
+}
+
+.rss-add-feed-modal .rss-add-feed-error.is-hidden {
+  display: none;
+}
+
+.rss-add-feed-modal .rss-add-feed-error-message {
+  color: var(--text-error);
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+}
+
+.rss-add-feed-modal .rss-add-feed-error-hint {
+  margin-top: 0.35em;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.45;
+}

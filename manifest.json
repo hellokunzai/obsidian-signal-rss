@@ -1,0 +1,10 @@
+{
+  "id": "rss-subscribe",
+  "name": "RSS Subscribe",
+  "version": "0.5.0",
+  "minAppVersion": "1.7.2",
+  "description": "Subscribe to RSS and Atom feeds, read articles in a focused split view, and save any article to your vault as a Markdown note.",
+  "author": "hellokunzai",
+  "authorUrl": "https://github.com/hellokunzai",
+  "isDesktopOnly": false
+}

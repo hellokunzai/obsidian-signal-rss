@@ -1,0 +1,26 @@
+{
+  "name": "rss-subscribe",
+  "version": "0.5.0",
+  "description": "Subscribe to RSS and Atom feeds, read articles in a focused view, and save any article to your vault as a Markdown note.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "keywords": [
+    "obsidian-plugin",
+    "rss",
+    "atom",
+    "feed-reader"
+  ],
+  "author": "hellokunzai",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "latest",
+    "tslib": "^2.6.2",
+    "typescript": "^5.4.5"
+  }
+}
