@@ -1,4 +1,4 @@
-import { Notice, setIcon } from "obsidian";
+import { Notice, Platform, setIcon } from "obsidian";
 import type RssSubscribePlugin from "../main";
 import { t } from "../i18n";
 import type { Feed } from "../types";
@@ -12,12 +12,53 @@ import {
 import type { FilterKind } from "./constants";
 import { iconButton, relativeTime, textButton } from "./dom";
 
+/** How long a finger must rest on a feed row before its menu opens. */
+const LONG_PRESS_MS = 500;
+
+/** Movement past this many pixels means the user is scrolling, not pressing. */
+const LONG_PRESS_SLOP = 8;
+
+export interface ListToolbarOptions {
+  /**
+   * The show/hide switch for the list column. Only the reader tab passes this:
+   * the sidebar copy *is* the list, so there is nothing there to fold away.
+   */
+  listToggle?: {
+    hidden: boolean;
+    onToggle: () => void;
+  };
+}
+
 /**
  * The toolbar that belongs to the subscription list. It lives here rather than
- * in the view because the list can be shown twice at once (reader tab + right
- * sidebar) and both copies have to offer the same actions.
+ * in the view because the list can be hosted either by the reader tab or by the
+ * right sidebar, and both hosts have to offer the same actions.
  */
-export function renderListToolbar(plugin: RssSubscribePlugin, toolbar: HTMLElement): void {
+export function renderListToolbar(
+  plugin: RssSubscribePlugin,
+  toolbar: HTMLElement,
+  options: ListToolbarOptions = {}
+): void {
+  const toggle = options.listToggle;
+  if (toggle) {
+    // Rendered first, and the toolbar is left-aligned, so the switch lands at
+    // the head of the row with the action cluster right behind it: one glance
+    // covers "what the list is doing" plus "what I can do to it".
+    const group = toolbar.createDiv({ cls: "rss-toolbar-view" });
+    // Keep both t() calls literal — the i18n key checker only sees literals.
+    const label = toggle.hidden ? t("view.toolbar.showList") : t("view.toolbar.hideList");
+    const button = iconButton(
+      group,
+      toggle.hidden ? "panel-left-open" : "panel-left-close",
+      label,
+      () => toggle.onToggle()
+    );
+    button.addClass("rss-list-toggle");
+    // The icon names the action, `aria-pressed` names the current mode.
+    button.setAttribute("aria-pressed", toggle.hidden ? "true" : "false");
+    group.createDiv({ cls: "rss-toolbar-divider" });
+  }
+
   const actions = toolbar.createDiv({ cls: "rss-toolbar-actions" });
   iconButton(actions, "check-check", t("view.toolbar.markAllRead"), () => {
     const refs = plugin.visibleRefs();
@@ -77,6 +118,10 @@ export class ListPane {
   private searchTimer: number | null = null;
   /** Live value while the row handle is being dragged; read back on pointerup. */
   private pendingFeedHeight = 0;
+  /** Pending long-press on a feed row; cancelled when the press becomes a scroll. */
+  private longPressTimer: number | null = null;
+  /** Set once a long press fires, so the click trailing it does not also filter. */
+  private longPressed = false;
   /** The element this pane was last built into, so we can re-clamp on resize. */
   private hostEl: HTMLElement | null = null;
 
@@ -105,6 +150,15 @@ export class ListPane {
       window.clearTimeout(this.searchTimer);
       this.searchTimer = null;
     }
+    this.clearLongPress();
+  }
+
+  /** Drop a pending long press. Its timeout outlives the row it was armed on. */
+  private clearLongPress(): void {
+    if (this.longPressTimer !== null) {
+      window.clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
   }
 
   /** Re-apply the stored feed height after the host itself changed size. */
@@ -114,6 +168,8 @@ export class ListPane {
 
   /** Build the column into `host`, which the caller has just created empty. */
   render(host: HTMLElement): void {
+    // The rows are about to be replaced, so any press armed on the old DOM dies here.
+    this.clearLongPress();
     this.hostEl = host;
     host.addClass("rss-list-pane");
     if (this.options.docked) host.addClass("rss-list-pane-docked");
@@ -285,13 +341,65 @@ export class ListPane {
       `${feed.title || feed.url} · ${t("view.meta.count", { count: String(unread) })}`
     );
     row.addEventListener("click", () => {
+      // A long press already opened the menu; the click trailing it is not a
+      // filter change and would otherwise dismiss what the menu was opened for.
+      if (this.longPressed) {
+        this.longPressed = false;
+        return;
+      }
       this.options.onLocalIntent?.();
       this.plugin.setListState({ filterKind: "feed", filterFeedId: feed.id });
     });
+
     row.addEventListener("contextmenu", (event) => {
       event.preventDefault();
-      this.plugin.openFeedMenu(event, feed);
+      // Some mobile WebViews do deliver this event on a long press. Whichever
+      // of the two arrives first wins; the other is dropped here.
+      this.longPressed = false;
+      this.clearLongPress();
+      this.plugin.openFeedMenu(feed, { x: event.clientX, y: event.clientY });
     });
+
+    this.attachLongPress(row, feed);
+  }
+
+  /**
+   * Mobile has no right-click, and its WebView does not reliably turn a long
+   * press into a `contextmenu` event, so the feed menu is armed on a timer
+   * instead. `touch-action` is deliberately left alone: the list still has to
+   * scroll, and a press that travels past the slop is cancelled below.
+   */
+  private attachLongPress(row: HTMLElement, feed: Feed): void {
+    if (!Platform.isMobile) return;
+
+    let originX = 0;
+    let originY = 0;
+    const cancel = (): void => this.clearLongPress();
+
+    row.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      originX = event.clientX;
+      originY = event.clientY;
+      this.longPressed = false;
+      this.clearLongPress();
+      this.longPressTimer = window.setTimeout(() => {
+        this.longPressTimer = null;
+        this.longPressed = true;
+        this.plugin.openFeedMenu(feed, { x: originX, y: originY });
+      }, LONG_PRESS_MS);
+    });
+
+    row.addEventListener("pointermove", (event) => {
+      if (this.longPressTimer === null) return;
+      const drift = Math.max(
+        Math.abs(event.clientX - originX),
+        Math.abs(event.clientY - originY)
+      );
+      if (drift > LONG_PRESS_SLOP) cancel();
+    });
+
+    row.addEventListener("pointerup", cancel);
+    row.addEventListener("pointercancel", cancel);
   }
 
   /* ---------- articles ---------- */

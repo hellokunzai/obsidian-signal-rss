@@ -1,4 +1,4 @@
-import { Menu, Notice, Plugin } from "obsidian";
+import { Menu, Notice, Platform, Plugin } from "obsidian";
 import { t } from "./i18n";
 import {
   DEFAULT_SETTINGS,
@@ -242,6 +242,13 @@ export default class RssSubscribePlugin extends Plugin {
     // anything. Clamp on the way in and let the view re-clamp on every render.
     this.settings.listPaneWidth = sanitizePaneSize(this.settings.listPaneWidth);
     this.settings.feedPaneHeight = sanitizePaneSize(this.settings.feedPaneHeight);
+    // "In both places" is no longer offered — keeping two copies of the list in
+    // sync was the whole cost of that mode and none of its value. Anyone still
+    // holding it keeps the sidebar copy: that is the pane their saved workspace
+    // layout restores, and the reader tab then drops its duplicate on its own.
+    if ((this.settings.listPosition as string) === "both") {
+      this.settings.listPosition = "sidebar";
+    }
     // A hand-edited data.json could hold anything, and the value drives which
     // panes get built. Fall back to the default rather than to a broken layout.
     if (!LIST_POSITIONS.includes(this.settings.listPosition)) {
@@ -422,17 +429,26 @@ export default class RssSubscribePlugin extends Plugin {
     }
     this.updateRibbonBadge();
     this.notifyViews();
+    // On mobile the docked copy of the list is a drawer that covers the reader,
+    // and picking an article is exactly the moment you want to see the article.
+    if (Platform.isMobile && this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_SIDEBAR).length > 0) {
+      this.app.workspace.rightSplit.collapse();
+    }
   }
 
   /* ---------- list placement ---------- */
 
-  /** Bring the right sidebar copy of the list up (creating it once). */
-  async openListSidebar(): Promise<void> {
+  /**
+   * Bring the right sidebar copy of the list up (creating it once).
+   * `reveal` is opt-in because on mobile the sidebar is a full-screen drawer:
+   * folding the list into it should not yank it open over what you are reading.
+   */
+  async openListSidebar(reveal = true): Promise<void> {
     // `ensureSideLeaf` looks for an existing leaf of this type before creating
     // one, so whatever else the user keeps in the sidebar is left alone.
     await this.app.workspace.ensureSideLeaf(VIEW_TYPE_RSS_SIDEBAR, "right", {
       active: false,
-      reveal: true,
+      reveal,
     });
     this.notifyViews();
   }
@@ -454,16 +470,36 @@ export default class RssSubscribePlugin extends Plugin {
       this.notifyViews();
       return;
     }
-    await this.openListSidebar();
+    await this.openListSidebar(!Platform.isMobile);
+    if (Platform.isMobile) new Notice(t("notice.listMovedToSidebar"));
   }
 
   /**
-   * The command palette entry. Closing the sidebar copy has to leave the list
-   * somewhere, and the setting is meant to be the single source of truth, so
-   * the two are kept in step instead of silently disagreeing.
+   * The command palette entry. It is a *visibility* switch, not a
+   * create/destroy switch: a panel that is merely folded away has to open
+   * again, otherwise pressing the command would delete the list instead of
+   * showing it — which is the normal state on mobile, where folding it into
+   * the drawer never expanded it in the first place.
+   *
+   * Showing it hands the list to the sidebar, hiding it hands the list back to
+   * the reader tab. `listPosition` follows both ways, so it always names where
+   * the list actually is — and there is only ever one copy of it.
    */
   async toggleListSidebar(): Promise<void> {
-    if (this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_SIDEBAR).length > 0) {
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_SIDEBAR);
+    const right = this.app.workspace.rightSplit;
+
+    if (leaves.length > 0 && right && right.collapsed) {
+      right.expand();
+      if (this.settings.listPosition !== "sidebar") {
+        this.settings.listPosition = "sidebar";
+        await this.saveSettings();
+      }
+      this.notifyViews();
+      return;
+    }
+
+    if (leaves.length > 0) {
       this.closeListSidebar();
       // Closing has to leave the list somewhere, and the setting has to stay
       // truthful, so the list falls back to the reader view.
@@ -474,12 +510,10 @@ export default class RssSubscribePlugin extends Plugin {
       this.notifyViews();
       return;
     }
-    // Opening it while the list already lives in the reader view gives "both".
-    if (this.settings.listPosition === "main") {
-      this.settings.listPosition = "both";
-      await this.saveSettings();
-    }
-    await this.openListSidebar();
+    // Opening it moves the list out of the reader view and into the sidebar.
+    this.settings.listPosition = "sidebar";
+    await this.saveSettings();
+    await this.openListSidebar(true);
   }
 
   updateRibbonBadge(): void {
@@ -509,7 +543,12 @@ export default class RssSubscribePlugin extends Plugin {
     internal.setting.openTabById(this.manifest.id);
   }
 
-  openFeedMenu(event: MouseEvent, feed: Feed): void {
+  /**
+   * Takes a position rather than a mouse event: the desktop opens this from a
+   * right-click, the mobile long-press from a touch, and `showAtMouseEvent`
+   * has nothing to read off a touch.
+   */
+  openFeedMenu(feed: Feed, position: { x: number; y: number }): void {
     const menu = new Menu();
     menu.addItem((item) =>
       item
@@ -552,7 +591,7 @@ export default class RssSubscribePlugin extends Plugin {
           void this.removeFeed(feed);
         })
     );
-    menu.showAtMouseEvent(event);
+    menu.showAtPosition(position);
   }
 
   /** Per-request timeout in ms, derived from the settings slider. */

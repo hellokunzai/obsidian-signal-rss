@@ -1,4 +1,4 @@
-import { ItemView, Notice } from "obsidian";
+import { ItemView, Notice, Platform } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import type RssSubscribePlugin from "../main";
 import { t } from "../i18n";
@@ -28,6 +28,12 @@ export class RssSubscribeView extends ItemView {
   private listPane: ListPane;
   private narrowPane: NarrowPane = "list";
   private isNarrow = false;
+  /**
+   * Whether this tab has folded its list column away. Kept per tab rather than
+   * on the plugin: hiding the list is a reading decision, not a layout setting,
+   * and it round-trips through the leaf state (`getState` / `setState`).
+   */
+  private listHidden = false;
   private opened = false;
   private pendingFulltext = "";
   private resizeObserver: ResizeObserver | null = null;
@@ -64,7 +70,7 @@ export class RssSubscribeView extends ItemView {
     this.opened = true;
     this.refresh();
     this.resizeObserver = new ResizeObserver(() => {
-      const narrow = this.contentEl.clientWidth > 0 && this.contentEl.clientWidth < 720;
+      const narrow = this.computeNarrow();
       if (narrow !== this.isNarrow) {
         this.render();
         return;
@@ -92,13 +98,16 @@ export class RssSubscribeView extends ItemView {
    * it on the leaf means Obsidian restores the filter you left behind.
    */
   getState(): Record<string, unknown> {
-    return { ...this.plugin.listState };
+    return { ...this.plugin.listState, listHidden: this.listHidden };
   }
 
   async setState(state: unknown, result: unknown): Promise<void> {
     void result;
     if (state && typeof state === "object") {
-      this.plugin.restoreListState(state as Record<string, unknown>);
+      const raw = state as Record<string, unknown>;
+      this.plugin.restoreListState(raw);
+      // Absent means a layout saved before the switch existed: list on screen.
+      this.listHidden = raw.listHidden === true;
     }
     if (this.opened) this.refresh();
   }
@@ -119,10 +128,25 @@ export class RssSubscribeView extends ItemView {
     return this.plugin.selectedRef();
   }
 
+  /**
+   * Obsidian ships no split panes on mobile, and a finger has no hairline to
+   * aim a resize handle at, so the reader stacks unconditionally there rather
+   * than waiting for the width to fall under the desktop threshold.
+   */
+  private computeNarrow(): boolean {
+    if (Platform.isMobile) return true;
+    const width = this.contentEl.clientWidth;
+    return width > 0 && width < 720;
+  }
+
+  /** True while this tab, rather than the right sidebar, hosts the list. */
+  private ownsList(): boolean {
+    return this.plugin.settings.listPosition !== "sidebar";
+  }
+
   render(): void {
     const container = this.contentEl;
-    const width = container.clientWidth;
-    this.isNarrow = width > 0 && width < 720;
+    this.isNarrow = this.computeNarrow();
     // Read scroll offsets and the search caret before the rebuild wipes them.
     this.listPane.capture(container);
     container.empty();
@@ -130,17 +154,25 @@ export class RssSubscribeView extends ItemView {
     container.style.setProperty("--rss-font-size", `${this.plugin.settings.readerFontSize}px`);
     container.style.setProperty("--rss-line-height", String(this.plugin.settings.readerLineHeight));
 
-    const withList = this.plugin.settings.listPosition !== "sidebar";
+    // The view *owns* the list whenever it is not parked in the sidebar;
+    // whether the column is actually drawn is a separate, per-tab decision.
+    const ownsList = this.ownsList();
+    const withList = ownsList && !this.listHidden;
     const selected = this.selectedRef();
     // Stacked (narrow) mode hides one pane or the other, which only makes sense
-    // when there are two panes to choose from.
+    // when there are two panes to choose from. A folded-away list leaves a
+    // single pane, and marking that `is-narrow` would hide the reader instead.
     const stacked = this.isNarrow && withList;
     const shell = container.createDiv({ cls: stacked ? "rss-shell is-narrow" : "rss-shell" });
     if (stacked && this.narrowPane === "reader" && selected) shell.addClass("is-narrow-reader");
 
-    if (withList) {
+    // Rendered whenever the view owns the list, folded away or not: the switch
+    // that brings the column back lives here, so it must not disappear with it.
+    if (ownsList) {
       const toolbar = shell.createDiv({ cls: "rss-toolbar" });
-      renderListToolbar(this.plugin, toolbar);
+      renderListToolbar(this.plugin, toolbar, {
+        listToggle: { hidden: this.listHidden, onToggle: () => this.toggleList() },
+      });
     }
 
     const body = shell.createDiv({ cls: "rss-body" });
@@ -152,6 +184,19 @@ export class RssSubscribeView extends ItemView {
     if (listPaneEl) this.listPane.render(listPaneEl);
     this.renderReader(readerPane, selected);
     this.applyStoredListWidth();
+  }
+
+  /**
+   * Fold the list column away, or bring it back. On a stacked (narrow) layout
+   * only one pane fits, so the switch also has to name the pane being asked
+   * for: hiding the list means "I want to read", showing it means "I want to
+   * browse". The toolbar is rebuilt from scratch at the end of every render, so
+   * the switch's icon, label and pressed state always follow this field.
+   */
+  private toggleList(): void {
+    this.listHidden = !this.listHidden;
+    this.narrowPane = this.listHidden ? "reader" : "list";
+    this.render();
   }
 
   /* ---------- column drag handle ---------- */
@@ -239,9 +284,11 @@ export class RssSubscribeView extends ItemView {
    * whatever room the view has right now.
    */
   private applyStoredListWidth(): void {
-    // Narrow mode stacks the panes and the sidebar position leaves this view
-    // without a column at all, so a stored width means nothing in either case.
-    const hasList = this.plugin.settings.listPosition !== "sidebar";
+    // Narrow mode stacks the panes, the sidebar position leaves this view
+    // without a column at all, and a folded-away list has no column to size —
+    // a stored width means nothing in any of those cases.
+    const hasList =
+      this.plugin.settings.listPosition !== "sidebar" && !this.listHidden;
     const stored = this.isNarrow || !hasList ? 0 : this.plugin.settings.listPaneWidth;
     if (stored <= 0) {
       this.contentEl.style.removeProperty("--rss-list-width");
@@ -309,6 +356,15 @@ export class RssSubscribeView extends ItemView {
       const empty = pane.createDiv({ cls: "rss-empty" });
       empty.createDiv({ cls: "rss-empty-title", text: t("view.empty.reader") });
       empty.createDiv({ cls: "rss-empty-hint", text: t("view.empty.readerHint") });
+      // Folded away and nothing selected is a dead end: there is no article row
+      // left to click, so the empty pane has to carry its own way back. Only
+      // offered while this tab is the one hosting the list — when it lives in
+      // the sidebar, the switch would move nothing the user can see.
+      if (this.listHidden && this.ownsList()) {
+        empty.createDiv({ cls: "rss-empty-hint", text: t("view.empty.listHidden") });
+        const actions = empty.createDiv({ cls: "rss-empty-actions" });
+        textButton(actions, t("view.toolbar.showList"), "normal", () => this.toggleList());
+      }
       return;
     }
 

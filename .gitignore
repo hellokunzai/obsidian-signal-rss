@@ -6,4 +6,5 @@ main.js
 .idea/
 *.hot-update.*
 prototypes/
+tools/
 .workbuddy/

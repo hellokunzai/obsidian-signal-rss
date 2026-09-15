@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { Platform, setIcon } from "obsidian";
 import { toMoment } from "../core/time";
 
 /** Small DOM helpers shared by the reader view and the sidebar copy of the list. */
@@ -51,6 +51,12 @@ export function absoluteTime(value: number): string {
 
 export function openExternal(url: string): void {
   if (!url) return;
+  // A synthesized `<a target="_blank">` click is not reliably bridged to the
+  // system browser inside Obsidian's mobile WebView; `window.open` is.
+  if (Platform.isMobile) {
+    window.open(url, "_blank");
+    return;
+  }
   const anchor = document.body.createEl("a", {
     href: url,
     attr: { target: "_blank", rel: "noopener noreferrer" },

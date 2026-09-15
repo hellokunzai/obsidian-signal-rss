@@ -1,11 +1,12 @@
 /**
  * Where the subscription list (and its toolbar) is rendered.
  * `main` keeps it inside the reader tab, `sidebar` moves it to a right-hand
- * panel, `both` shows a copy in each.
+ * panel. Exactly one home at a time — a second copy only ever meant two panes
+ * to keep in sync.
  */
-export type ListPosition = "main" | "sidebar" | "both";
+export type ListPosition = "main" | "sidebar";
 
-export const LIST_POSITIONS: ListPosition[] = ["main", "sidebar", "both"];
+export const LIST_POSITIONS: ListPosition[] = ["main", "sidebar"];
 
 export interface Feed {
   id: string;

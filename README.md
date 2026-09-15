@@ -6,7 +6,7 @@ Subscribe to RSS and Atom feeds, read them in a focused split view inside Obsidi
 
 - **Subscriptions** — add feeds by pasting either a feed URL or a site home page; RSS 2.0, Atom and RSS 1.0 (RDF) are supported. Feeds can be sorted into groups.
 - **Split reader** — one view with a subscription and article list on the left and the article body on the right. The layout collapses to a single pane when the view gets narrow.
-- **Dockable list** — the subscription list (toolbar, search, feed tree and article list) can live inside the reader view, in the right sidebar, or in both at once. Either copy drives the same selection, so clicking an article in the sidebar updates the reader tab.
+- **Dockable list** — the subscription list (toolbar, search, feed tree and article list) can live inside the reader view or in the right sidebar. Either copy drives the same selection, so clicking an article in the sidebar updates the reader tab. Inside the reader view the list can also be folded away with one click from the toolbar, leaving the article full width; the switch stays put so the list is one click away again.
 - **Full text extraction** — when a feed only ships a summary, the article page is fetched and its main content extracted, so you read (and keep) the whole thing.
 - **Markdown export** — save any article as a note. The destination folder, the file name and both the front matter and body templates are configurable, with `{{title}}`, `{{feed}}`, `{{author}}`, `{{published}}`, `{{created}}`, `{{summary}}` and `{{content}}` variables.
 - **Automatic refresh** — feeds are polled in the background at an interval you choose. Set it to 0 to switch automatic refresh off.
@@ -53,7 +53,7 @@ Right-click a feed in the left column for refresh, mark-as-read, edit and delete
 
 | Setting | Description |
 | --- | --- |
-| Subscription list position | Show the list inside the reader view, in the right sidebar, or in both places |
+| Subscription list position | Show the list inside the reader view, or dock it in the right sidebar |
 | Automatic refresh interval | Background polling interval in minutes; 0 turns it off |
 | Request timeout | How long to wait for a feed before giving up (5–120 s) |
 | Articles kept per feed | Upper bound on stored articles per feed |
@@ -105,6 +105,13 @@ Feed content is third-party markup and is treated as untrusted:
 ## Mobile
 
 The plugin works on mobile (`isDesktopOnly: false`). It uses only cross-platform Obsidian APIs — no Node.js file system access.
+
+The layout adapts to a phone rather than merely fitting on it:
+
+- The list and the reader are always stacked into one column, with a back arrow to return to the list. There is no split view and no drag handle to aim at.
+- Long-pressing a subscription opens its menu (refresh, rename, delete), since there is no right-click.
+- Touch targets, the search box, and the reader's margins are sized for a thumb and for iOS' minimum input font size.
+- If you move the subscription list into the right sidebar, picking an article folds the drawer away so the article is visible right away.
 
 ## Development
 

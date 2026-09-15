@@ -36,7 +36,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
           // Keep every t() call a literal — the i18n key checker only sees those.
           .addOption("main", t("settings.listPosition.main"))
           .addOption("sidebar", t("settings.listPosition.sidebar"))
-          .addOption("both", t("settings.listPosition.both"))
           .setValue(this.plugin.settings.listPosition)
           .onChange(async (value) => {
             this.plugin.settings.listPosition = value as ListPosition;

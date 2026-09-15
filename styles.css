@@ -20,13 +20,19 @@
 
 /* ---------- toolbar ---------- */
 
+/* Both hosts (reader tab and right sidebar) left-align the action cluster, so
+   the icons start on the list column's left edge and the empty stretch falls to
+   the right. That also visibly attaches the actions to the list they operate on.
+
+   The 8px inset deliberately matches `.rss-search-bar`'s, so the first icon
+   starts on the same vertical line as the search field below it. */
 .rss-subscribe-view .rss-toolbar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
   flex: 0 0 auto;
-  padding: 6px 10px 5px;
+  padding: 6px 8px 5px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -49,6 +55,24 @@
   flex: 0 0 auto;
 }
 
+/* The list's own switch, landing just left of the action cluster. A separate
+   group rather than a member of `rss-toolbar-actions` because the sidebar copy
+   of the list renders the actions without it. */
+.rss-subscribe-view .rss-toolbar-view {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.rss-subscribe-view .rss-toolbar-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background-color: var(--background-modifier-border);
+}
+
 .rss-subscribe-view .rss-icon-button {
   display: inline-flex;
   align-items: center;
@@ -68,14 +92,28 @@
   appearance: none;
 }
 
-.rss-subscribe-view .rss-icon-button:hover {
-  background-color: var(--background-modifier-hover);
-  color: var(--text-normal);
+/* A touch device keeps the last `:hover` latched after a tap, so every row the
+   user passes over stays looking selected. Gate each hover affordance on a
+   pointer that can actually hover; `:active` / `.is-active` still carry the
+   feedback on touch. */
+@media (hover: hover) {
+  .rss-subscribe-view .rss-icon-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
 }
 
 .rss-subscribe-view .rss-icon-button svg {
   width: 16px;
   height: 16px;
+}
+
+/* Folded away: the icon carries the state so the button reads as "pressed"
+   without growing a background the rest of the row does not have. Declared
+   after the hover block on purpose — same specificity, so source order decides
+   and hovering a pressed switch keeps the accent colour. */
+.rss-subscribe-view .rss-list-toggle[aria-pressed="true"] {
+  color: var(--text-accent);
 }
 
 .rss-subscribe-view .rss-button {
@@ -97,8 +135,10 @@
   appearance: none;
 }
 
-.rss-subscribe-view .rss-button:hover {
-  background-color: var(--background-modifier-hover);
+@media (hover: hover) {
+  .rss-subscribe-view .rss-button:hover {
+    background-color: var(--background-modifier-hover);
+  }
 }
 
 .rss-subscribe-view .rss-button.rss-button-cta {
@@ -107,9 +147,11 @@
   color: var(--text-on-accent);
 }
 
-.rss-subscribe-view .rss-button.rss-button-cta:hover {
-  border-color: var(--interactive-accent-hover);
-  background-color: var(--interactive-accent-hover);
+@media (hover: hover) {
+  .rss-subscribe-view .rss-button.rss-button-cta:hover {
+    border-color: var(--interactive-accent-hover);
+    background-color: var(--interactive-accent-hover);
+  }
 }
 
 /* ---------- panes ---------- */
@@ -209,10 +251,15 @@
   transition: background-color 120ms ease;
 }
 
-.rss-subscribe-view .rss-resizer:hover::before,
 .rss-subscribe-view .rss-resizer.is-dragging::before,
 .rss-subscribe-view .rss-resizer:focus-visible::before {
   background-color: var(--interactive-accent);
+}
+
+@media (hover: hover) {
+  .rss-subscribe-view .rss-resizer:hover::before {
+    background-color: var(--interactive-accent);
+  }
 }
 
 /* The ::before is the focus ring; the default outline would box the hit area. */
@@ -232,11 +279,17 @@
   width: 1px;
 }
 
-.rss-subscribe-view .rss-resizer-col:hover::before,
 .rss-subscribe-view .rss-resizer-col.is-dragging::before,
 .rss-subscribe-view .rss-resizer-col:focus-visible::before {
   left: 1px;
   width: 3px;
+}
+
+@media (hover: hover) {
+  .rss-subscribe-view .rss-resizer-col:hover::before {
+    left: 1px;
+    width: 3px;
+  }
 }
 
 .rss-subscribe-view .rss-resizer-row {
@@ -251,11 +304,17 @@
   height: 1px;
 }
 
-.rss-subscribe-view .rss-resizer-row:hover::before,
 .rss-subscribe-view .rss-resizer-row.is-dragging::before,
 .rss-subscribe-view .rss-resizer-row:focus-visible::before {
   top: 2px;
   height: 3px;
+}
+
+@media (hover: hover) {
+  .rss-subscribe-view .rss-resizer-row:hover::before {
+    top: 2px;
+    height: 3px;
+  }
 }
 
 .rss-subscribe-view .rss-resizer.is-hidden {
@@ -287,7 +346,8 @@
     left: 6px;
   }
 
-  .rss-subscribe-view .rss-resizer-col:hover::before,
+  /* No `:hover` variant here: a coarse pointer is almost never a hovering one,
+     and the hover rule above already carries that state for a hybrid device. */
   .rss-subscribe-view .rss-resizer-col.is-dragging::before,
   .rss-subscribe-view .rss-resizer-col:focus-visible::before {
     left: 5px;
@@ -302,7 +362,6 @@
     top: 6px;
   }
 
-  .rss-subscribe-view .rss-resizer-row:hover::before,
   .rss-subscribe-view .rss-resizer-row.is-dragging::before,
   .rss-subscribe-view .rss-resizer-row:focus-visible::before {
     top: 5px;
@@ -340,8 +399,10 @@
   appearance: none;
 }
 
-.rss-subscribe-view .rss-group-toggle:hover {
-  background-color: var(--background-modifier-hover);
+@media (hover: hover) {
+  .rss-subscribe-view .rss-group-toggle:hover {
+    background-color: var(--background-modifier-hover);
+  }
 }
 
 .rss-subscribe-view .rss-group-toggle.is-collapsed {
@@ -420,8 +481,10 @@
   appearance: none;
 }
 
-.rss-subscribe-view .rss-row:hover {
-  background-color: var(--background-modifier-hover);
+@media (hover: hover) {
+  .rss-subscribe-view .rss-row:hover {
+    background-color: var(--background-modifier-hover);
+  }
 }
 
 .rss-subscribe-view .rss-row.is-active {
@@ -502,8 +565,10 @@
   border-bottom-color: transparent;
 }
 
-.rss-subscribe-view .rss-article-row:hover {
-  background-color: var(--background-modifier-hover);
+@media (hover: hover) {
+  .rss-subscribe-view .rss-article-row:hover {
+    background-color: var(--background-modifier-hover);
+  }
 }
 
 .rss-subscribe-view .rss-article-row.is-active {
@@ -703,8 +768,10 @@
   text-decoration: none;
 }
 
-.rss-subscribe-view .rss-content a:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .rss-subscribe-view .rss-content a:hover {
+    text-decoration: underline;
+  }
 }
 
 .rss-subscribe-view .rss-content ul,
@@ -881,4 +948,88 @@
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   line-height: 1.45;
+}
+
+/* ---------- mobile ---------- */
+
+/* Obsidian's mobile shell has no split panes, no hovering pointer and no cursor
+   to aim at a hairline, and `Platform.isMobile` already forces the stacked
+   layout (see `RssSubscribeView.computeNarrow`). Everything below is about
+   making that stacked layout usable with a thumb: real touch targets, a search
+   box iOS will not zoom on, and padding that clears the gesture bar. */
+.is-mobile .rss-subscribe-view .rss-toolbar {
+  padding: 4px 6px 3px;
+}
+
+/* The 28px box sits below iOS' 16px zoom trigger, so focusing it would scale
+   the whole page. Use the platform input height and an explicit font size. */
+.is-mobile .rss-subscribe-view .rss-search {
+  height: var(--input-height);
+  font-size: 16px;
+}
+
+.is-mobile .rss-subscribe-view .rss-icon-button {
+  width: 38px;
+  height: 38px;
+}
+
+.is-mobile .rss-subscribe-view .rss-icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.is-mobile .rss-subscribe-view .rss-button {
+  height: 38px;
+  padding: 3px 12px;
+}
+
+.is-mobile .rss-subscribe-view .rss-row {
+  padding: 9px 8px;
+}
+
+.is-mobile .rss-subscribe-view .rss-group-toggle {
+  padding: 8px 8px 8px 3px;
+}
+
+.is-mobile .rss-subscribe-view .rss-article-row {
+  padding: 12px 10px 13px;
+}
+
+.is-mobile .rss-subscribe-view .rss-article-list {
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.is-mobile .rss-subscribe-view .rss-empty {
+  padding: 24px 14px;
+}
+
+.is-mobile .rss-subscribe-view .rss-reader-header {
+  padding: 10px 14px 8px;
+}
+
+/* A title plus five actions do not fit across a phone: the headline takes its
+   own row and the actions move under it, instead of squeezing the title down
+   to a couple of characters. */
+.is-mobile .rss-subscribe-view .rss-reader-titlerow {
+  flex-wrap: wrap;
+}
+
+.is-mobile .rss-subscribe-view .rss-reader-title,
+.is-mobile .rss-subscribe-view .rss-reader-actions {
+  flex: 1 1 100%;
+}
+
+.is-mobile .rss-subscribe-view .rss-reader-body {
+  padding: 14px 14px calc(40px + env(safe-area-inset-bottom, 0px));
+}
+
+.is-mobile .rss-subscribe-view .rss-reader-footnote {
+  padding: 6px 14px 10px;
+}
+
+/* The URL field and its "Detect" button are one row on desktop and far too
+   narrow for both on a phone. */
+.is-mobile .rss-add-feed-modal .setting-item-control {
+  flex-wrap: wrap;
+  gap: 8px;
 }
