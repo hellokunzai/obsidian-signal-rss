@@ -425,6 +425,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The one row an empty group has: "add feed", pre-filled with that group. Muted
+   like a group header rather than a feed row, so it reads as the placeholder for
+   what is not there yet instead of as a subscription. The plus sits in the
+   chevron's own column (3px + 14px + 5px) so its label starts at 22px — the same
+   inset a feed label gets from its 6px dot. */
+.rss-subscribe-view .rss-row-add {
+  gap: 5px;
+  padding-left: 3px;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+.rss-subscribe-view .rss-row-add-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.rss-subscribe-view .rss-row-add-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 .rss-subscribe-view .rss-feed-dot {
   flex: 0 0 auto;
   width: 6px;

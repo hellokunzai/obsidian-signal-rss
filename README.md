@@ -4,7 +4,7 @@ Subscribe to RSS and Atom feeds, read them in a dedicated reader tab inside Obsi
 
 ## Features
 
-- **Subscriptions** — add feeds by pasting either a feed URL or a site home page; RSS 2.0, Atom and RSS 1.0 (RDF) are supported. Feeds can be sorted into groups.
+- **Subscriptions** — add feeds by pasting either a feed URL or a site home page; RSS 2.0, Atom and RSS 1.0 (RDF) are supported. Feeds can be sorted into groups, and groups themselves can be created, renamed and deleted from the subscription tree.
 - **Subscription list in the sidebar** — the search box, the feed tree, the article list and the drag handle between them live in the right sidebar. The list is the only place you pick from, and what it picks is what the reader shows.
 - **Reader tab** — the selected article opens in its own tab in the main area, with the title, source, author and date up top and the article body below. Star, mark read or unread, fetch full text, open in the browser and save as note sit next to the title.
 - **Full text extraction** — when a feed only ships a summary, the article page is fetched and its main content extracted, so you read (and keep) the whole thing.
@@ -34,7 +34,9 @@ Search for "RSS Subscribe" under **Settings → Community plugins → Browse**.
 3. Articles show up under the three filters at the top of the list. Clicking one opens it in a reader tab in the main area.
 4. Use **Save as note** in the reader to write the article into your vault.
 
-Right-click a feed in the sidebar for refresh, mark-as-read, edit and delete. The menu behind a group header also carries OPML import and export plus mark-all-read/unread for that group.
+Right-click a feed in the sidebar for refresh, mark-as-read, edit and delete. The menu behind a group header also carries OPML import and export, mark-all-read/unread for that group, and rename/delete for the group itself — deleting a group moves its feeds back to **Ungrouped** instead of deleting them, and renaming it takes them along.
+
+Right-click the empty space under the subscription tree to create a group, or to add a feed without filing it into one. A group you create stays in the tree even while it holds no feeds — instead of an empty space it shows an **Add feed…** row, which pre-fills the group — until you delete it again.
 
 The list only ever lives in the sidebar, so there is no position to choose: **RSS Subscribe: Toggle the subscription list sidebar** shows and hides it, and while it is hidden the reader's empty state offers a button that brings it back.
 
@@ -112,7 +114,7 @@ The plugin works on mobile (`isDesktopOnly: false`). It uses only cross-platform
 The layout adapts to a phone rather than merely fitting on it:
 
 - The subscription list lives in the right sidebar, which on a phone is a drawer. Tapping the RSS icon in the ribbon opens it; picking an article folds it away so the article is visible right away.
-- Long-pressing a subscription, or a group header, opens its menu (refresh, mark as read, edit, delete, OPML, mark all), since there is no right-click.
+- Long-pressing a subscription, a group header, or the empty space under the tree opens its menu (refresh, mark as read, edit, delete, OPML, mark all, new group, rename, delete group), since there is no right-click.
 - Touch targets, the search box, and the reader's margins are sized for a thumb and for iOS' minimum input font size.
 
 ## Development

@@ -67,6 +67,12 @@ export interface RssSubscribeSettings {
   refreshIntervalMinutes: number;
   requestTimeoutSeconds: number;
   maxArticlesPerFeed: number;
+  /**
+   * Group names the user declared by hand. A group holding at least one feed is
+   * derived from those feeds and is not listed here; an empty one has nothing to
+   * be derived from, so it exists only as a name until a feed joins it.
+   */
+  groups: string[];
   /** Group names whose feed rows are folded shut. "" stands for the ungrouped bucket. */
   collapsedGroups: string[];
   markReadOnOpen: boolean;
@@ -90,6 +96,7 @@ export const DEFAULT_SETTINGS: RssSubscribeSettings = {
   refreshIntervalMinutes: 60,
   requestTimeoutSeconds: 20,
   maxArticlesPerFeed: 200,
+  groups: [],
   collapsedGroups: [],
   markReadOnOpen: true,
   fetchFulltextOnOpen: true,

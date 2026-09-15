@@ -154,6 +154,9 @@ export class ListPane {
     this.filterRow(section, "starred", "", t("view.filter.starred"), String(starred));
 
     if (store.feeds.length === 0) {
+      // No subscriptions at all: an empty patch of tree has nothing to create a
+      // group *for*, and the empty state below is the way in. So this branch
+      // returns before the tree menu is wired — there is no tree to hang it on.
       const empty = section.createDiv({ cls: "rss-empty rss-empty-small" });
       empty.createDiv({ cls: "rss-empty-title", text: t("view.empty.feeds") });
       empty.createDiv({ cls: "rss-empty-hint", text: t("view.empty.feedsHint") });
@@ -164,7 +167,7 @@ export class ListPane {
       return;
     }
 
-    const groups = store.groups();
+    const groups = this.plugin.groupNames();
     const ungrouped = store.feeds.filter((feed) => !feed.group);
     // A hairline between the three fixed filters and the subscription tree.
     // A real element rather than an `::after`: it lives inside the scrolling
@@ -187,6 +190,39 @@ export class ListPane {
         this.groupSection(section, UNGROUPED_KEY, t("view.uncategorized"), ungrouped);
       }
     }
+
+    // The blank space below the tree belongs to no row, and that is where a new
+    // group comes from: there is no row to hang that action on until one exists.
+    this.attachTreeMenu(section);
+  }
+
+  /**
+   * Right-click (or long press, on touch) anywhere in the tree that is not a row
+   * opens the tree's own menu. The rows keep their own menus: they run their
+   * handlers first, and this one then sees a press that started on them and
+   * steps aside, so nothing opens twice.
+   */
+  private attachTreeMenu(section: HTMLElement): void {
+    const isBackground = (target: EventTarget | null): boolean =>
+      !(target instanceof HTMLElement) ||
+      // `.rss-row` also covers the "add feed" row of an empty group.
+      !target.closest(".rss-group-toggle, .rss-group-body, .rss-row");
+
+    section.addEventListener("contextmenu", (event) => {
+      if (!isBackground(event.target)) return;
+      event.preventDefault();
+      this.longPressed = false;
+      this.clearLongPress();
+      this.plugin.openTreeMenu({ x: event.clientX, y: event.clientY });
+    });
+
+    this.attachLongPress(
+      section,
+      (x, y) => {
+        this.plugin.openTreeMenu({ x, y });
+      },
+      isBackground
+    );
   }
 
   /**
@@ -197,6 +233,9 @@ export class ListPane {
    * The header also carries the group's own menu: right-click on a pointer
    * device, long press on a touch one. `key` doubles as the group value a new
    * feed is pre-filled with, which is why the ungrouped bucket passes "".
+   *
+   * A group with no feeds still gets a body, holding the one row that does
+   * something useful there (see `emptyGroupRow`).
    */
   private groupSection(parent: HTMLElement, key: string, name: string, feeds: Feed[]): void {
     const collapsed = this.plugin.isGroupCollapsed(key);
@@ -249,6 +288,20 @@ export class ListPane {
     const body = parent.createDiv({ cls: "rss-group-body" });
     if (collapsed) body.hidden = true;
     for (const feed of feeds) this.feedRow(body, feed);
+    // A group with nothing in it would otherwise be a dead end: a name you can
+    // fold, with no row to click and no filter to pick. The one useful thing to
+    // do with an empty group is fill it, so that is what the body offers.
+    if (feeds.length === 0) this.emptyGroupRow(body, key);
+  }
+
+  private emptyGroupRow(body: HTMLElement, group: string): void {
+    const row = body.createEl("button", { cls: "rss-row rss-row-add" });
+    const icon = row.createSpan({ cls: "rss-row-add-icon" });
+    setIcon(icon, "plus");
+    row.createSpan({ cls: "rss-row-label", text: t("view.group.addFeed") });
+    row.addEventListener("click", () => {
+      this.plugin.openAddFeedModal(null, group);
+    });
   }
 
   private filterRow(
@@ -317,32 +370,50 @@ export class ListPane {
    *
    * The callback takes the press coordinates because a touch event carries no
    * usable ones at fire time; the position has to be captured on `pointerdown`.
+   *
+   * `ownsPress` is for containers whose children carry menus of their own: a
+   * press that started on such a child belongs to it, and this handler would
+   * otherwise clear the timer the child just armed and answer in its place.
    */
   private attachLongPress(
     row: HTMLElement,
-    onLongPress: (x: number, y: number) => void
+    onLongPress: (x: number, y: number) => void,
+    ownsPress?: (target: EventTarget | null) => boolean
   ): void {
     if (!Platform.isMobile) return;
 
     let originX = 0;
     let originY = 0;
-    const cancel = (): void => this.clearLongPress();
+    // True only while this element owns the pending press. The three pointer
+    // events all bubble through a container *and* the child they started on, so
+    // without this flag the container's `pointermove`/`pointerup` would read its
+    // own stale origin against the child's timer and cancel it — a long press on
+    // a feed row would never survive the first pixel of finger drift.
+    let mine = false;
+    const cancel = (): void => {
+      if (!mine) return;
+      mine = false;
+      this.clearLongPress();
+    };
 
     row.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
+      if (ownsPress && !ownsPress(event.target)) return;
       originX = event.clientX;
       originY = event.clientY;
+      mine = true;
       this.longPressed = false;
       this.clearLongPress();
       this.longPressTimer = window.setTimeout(() => {
         this.longPressTimer = null;
+        mine = false;
         this.longPressed = true;
         onLongPress(originX, originY);
       }, LONG_PRESS_MS);
     });
 
     row.addEventListener("pointermove", (event) => {
-      if (this.longPressTimer === null) return;
+      if (!mine || this.longPressTimer === null) return;
       const drift = Math.max(
         Math.abs(event.clientX - originX),
         Math.abs(event.clientY - originY)

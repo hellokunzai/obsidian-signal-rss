@@ -28,6 +28,7 @@ import { htmlToPlainText } from "./core/sanitize";
 import { saveArticleAsNote } from "./note/saver";
 import { RssSubscribeSettingTab } from "./settings";
 import { AddFeedModal } from "./ui/add-feed-modal";
+import { GroupNameModal } from "./ui/group-name-modal";
 import { RssSubscribeView } from "./view/feed-view";
 import { RssSidebarView } from "./view/sidebar-view";
 import { UNGROUPED_KEY, VIEW_TYPE_RSS_SIDEBAR, VIEW_TYPE_RSS_SUBSCRIBE } from "./view/constants";
@@ -71,6 +72,26 @@ function asText(value: unknown): string {
 function sanitizePaneSize(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return 0;
   return Math.round(value);
+}
+
+/**
+ * Swap one group key for another inside a settings list keyed by group name
+ * (the declared group list, and the folded-group list). An empty `to` means
+ * "drop this key". The ungrouped bucket's own key *is* "", so the drop is keyed
+ * off the match rather than off the resulting value — otherwise folding the
+ * ungrouped bucket away would be mistaken for a deletion.
+ *
+ * Always hands back a fresh array: these lists are read straight off the
+ * settings object, which must never be mutated in place.
+ */
+function retargetGroupKey(list: string[], from: string, to: string): string[] {
+  const next: string[] = [];
+  for (const key of list) {
+    if (key === from && !to) continue;
+    const value = key === from ? to : key;
+    if (next.indexOf(value) < 0) next.push(value);
+  }
+  return next;
 }
 
 function normalizeFeed(raw: Partial<Feed> | null | undefined): Feed | null {
@@ -237,8 +258,11 @@ export default class RssSubscribePlugin extends Plugin {
     const data = (await this.loadData()) as PersistedData | null;
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data?.settings ?? {});
     this.settings.version = SETTINGS_VERSION;
-    // Hand back a fresh array: Object.assign would otherwise alias
-    // DEFAULT_SETTINGS.collapsedGroups, and a later toggle would mutate the module default.
+    // Hand back fresh arrays: Object.assign would otherwise alias the
+    // DEFAULT_SETTINGS lists, and a later toggle would mutate the module default.
+    this.settings.groups = Array.isArray(this.settings.groups)
+      ? this.settings.groups.filter((name) => typeof name === "string" && name.length > 0)
+      : [];
     this.settings.collapsedGroups = Array.isArray(this.settings.collapsedGroups)
       ? this.settings.collapsedGroups.filter((key) => typeof key === "string")
       : [];
@@ -272,12 +296,29 @@ export default class RssSubscribePlugin extends Plugin {
   }
 
   /**
+   * Every group the tree draws, in the order it draws them. Two sources make up
+   * one list: the names the feeds carry (`Store.groups()`), and the names the
+   * user declared by hand. A group with feeds in it is already covered by the
+   * first, but an empty one has nothing to be derived from — it exists only
+   * because someone asked for it, so it is stored in the settings instead.
+   */
+  groupNames(): string[] {
+    if (!this.store) return [];
+    const names: string[] = [];
+    for (const name of [...this.store.groups(), ...this.settings.groups]) {
+      if (name && !names.includes(name)) names.push(name);
+    }
+    names.sort((a, b) => a.localeCompare(b));
+    return names;
+  }
+
+  /**
    * Every foldable group key: the named groups plus "" for the ungrouped bucket.
    * Drives the collapse-all command and decides whether it applies at all.
    */
   groupKeys(): string[] {
     if (!this.store) return [];
-    const keys = this.store.groups();
+    const keys = this.groupNames();
     return this.store.feeds.some((feed) => !feed.group) ? [...keys, UNGROUPED_KEY] : keys;
   }
 
@@ -560,6 +601,125 @@ export default class RssSubscribePlugin extends Plugin {
     return out;
   }
 
+  /* ---------- groups ---------- */
+
+  /**
+   * The menu behind the empty space under the subscription tree. Creating a
+   * group belongs to no row — there is no row about it yet — so it hangs off
+   * the background of the section that draws the tree.
+   */
+  openTreeMenu(position: { x: number; y: number }): void {
+    const menu = new Menu();
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.tree.newGroup"))
+        .setIcon("folder-plus")
+        .onClick(() => {
+          this.promptNewGroup();
+        })
+    );
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.tree.addFeed"))
+        .setIcon("plus")
+        .onClick(() => {
+          this.openAddFeedModal(null);
+        })
+    );
+    menu.showAtPosition(position);
+  }
+
+  promptNewGroup(): void {
+    new GroupNameModal(this.app, {
+      title: t("modal.groupName.titleCreate"),
+      value: "",
+      submitLabel: t("modal.groupName.create"),
+      onSubmit: (name) => this.createGroup(name),
+    }).open();
+  }
+
+  promptRenameGroup(name: string): void {
+    new GroupNameModal(this.app, {
+      title: t("modal.groupName.titleRename"),
+      value: name,
+      submitLabel: t("modal.groupName.save"),
+      onSubmit: (next) => this.renameGroup(name, next),
+    }).open();
+  }
+
+  /**
+   * Declare a group with no feeds in it yet. Nothing is written when the name is
+   * blank or already taken, and `false` goes back to the dialog so it can stay
+   * open and say so rather than closing on a name that went nowhere.
+   */
+  createGroup(rawName: string): boolean {
+    const name = rawName.trim();
+    if (!name) {
+      new Notice(t("notice.groupNeedsName"));
+      return false;
+    }
+    if (this.groupNames().includes(name)) {
+      new Notice(t("notice.groupExists", { name }));
+      return false;
+    }
+    this.settings.groups = [...this.settings.groups, name];
+    void this.saveSettings();
+    this.notifyViews();
+    new Notice(t("notice.groupCreated", { name }));
+    return true;
+  }
+
+  /**
+   * Rename a group: its feeds move with it, and so do the two settings lists
+   * keyed by the old name — a folded group that kept the old key would spring
+   * open, and a declared group would be left behind as an empty duplicate.
+   */
+  renameGroup(from: string, rawTo: string): boolean {
+    const to = rawTo.trim();
+    if (!to) {
+      new Notice(t("notice.groupNeedsName"));
+      return false;
+    }
+    if (to === from) return true;
+    if (this.groupNames().includes(to)) {
+      new Notice(t("notice.groupExists", { name: to }));
+      return false;
+    }
+    for (const feed of this.store.feeds) {
+      if (feed.group === from) feed.group = to;
+    }
+    this.settings.groups = retargetGroupKey(this.settings.groups, from, to);
+    this.settings.collapsedGroups = retargetGroupKey(this.settings.collapsedGroups, from, to);
+    void this.persist();
+    this.notifyViews();
+    new Notice(t("notice.groupRenamed", { name: to }));
+    return true;
+  }
+
+  /**
+   * Delete a group. The feeds inside it are not deleted — they drop back to the
+   * ungrouped bucket, which is exactly where they were before anyone named the
+   * group, so nothing is lost and there is nothing to confirm first.
+   */
+  deleteGroup(name: string): void {
+    let moved = 0;
+    for (const feed of this.store.feeds) {
+      if (feed.group !== name) continue;
+      feed.group = "";
+      moved += 1;
+    }
+    this.settings.groups = retargetGroupKey(this.settings.groups, name, "");
+    this.settings.collapsedGroups = retargetGroupKey(this.settings.collapsedGroups, name, "");
+    void this.persist();
+    this.notifyViews();
+    // Keep both t() calls literal — the i18n key checker only sees literals.
+    new Notice(
+      moved > 0
+        ? t("notice.groupDeleted", { name, count: String(moved) })
+        : t("notice.groupDeletedEmpty", { name })
+    );
+  }
+
   /** Bulk read/unread across a set of feeds, reported like the other batch jobs. */
   private markFeeds(feeds: Feed[], read: boolean): void {
     const refs = this.articlesOf(feeds);
@@ -589,6 +749,10 @@ export default class RssSubscribePlugin extends Plugin {
    * No scope label at the top. The menu opens on the group header it belongs
    * to, so a line naming that group only repeats what the click already said —
    * the count it used to carry is on the header row as well.
+   *
+   * Rename and delete sit at the bottom, behind their own separator: they act on
+   * the group itself rather than on what is inside it, and they are not the
+   * reason anyone opens this menu.
    */
   openGroupMenu(
     groupValue: string,
@@ -646,6 +810,27 @@ export default class RssSubscribePlugin extends Plugin {
           this.markFeeds(feeds, false);
         })
     );
+    // The ungrouped bucket is not a group anyone named — it is where feeds land
+    // when they have no group — so there is nothing there to rename or delete.
+    if (groupValue !== UNGROUPED_KEY) {
+      menu.addSeparator();
+      menu.addItem((item) =>
+        item
+          .setTitle(t("view.group.rename"))
+          .setIcon("pencil")
+          .onClick(() => {
+            this.promptRenameGroup(groupValue);
+          })
+      );
+      menu.addItem((item) =>
+        item
+          .setTitle(t("view.group.delete"))
+          .setIcon("trash-2")
+          .onClick(() => {
+            this.deleteGroup(groupValue);
+          })
+      );
+    }
     menu.showAtPosition(position);
   }
 
