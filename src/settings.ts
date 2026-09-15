@@ -34,12 +34,35 @@ const SETTINGS_TABS: SettingsTabDef[] = [
 
 const PANEL_ID = "rss-subscribe-settings-panel";
 
+/* Matching is done on a lowercased haystack built per call rather than on a
+   cached index: the list is rebuilt from live plugin state anyway, and a cache
+   here would be one more thing to invalidate after an OPML import. */
+function feedMatches(feed: Feed, query: string): boolean {
+  return `${feed.title} ${feed.group ?? ""} ${feed.url}`.toLowerCase().includes(query);
+}
+
 export class RssSubscribeSettingTab extends PluginSettingTab {
   plugin: RssSubscribePlugin;
 
   /* Which tab is open. Instance state on purpose: it is a view preference, so it
      must not be written to data.json, and "reset settings" must not touch it. */
   private activeTab: SettingsTabId = "general";
+
+  /* The subscriptions search box is instance state for the same reason: it is a
+     transient filter over the list, not a preference. Persisting it would let a
+     stale query survive a restart with nothing on screen explaining it.
+     Surviving a tab switch does matter, so it is a field rather than a local. */
+  private feedQuery = "";
+
+  /* Refs into the panel that is currently on screen. `display()` throws the whole
+     tab away and redraws it, so these are re-pointed on every render and are only
+     ever read by the handlers below — each of which checks `isConnected` first,
+     because a slow refresh can land after the user has switched tabs. */
+  private feedTableEl: HTMLElement | null = null;
+  private feedRowsEl: HTMLElement | null = null;
+  private feedCountEl: HTMLElement | null = null;
+  private feedEmptyEl: HTMLElement | null = null;
+  private feedSearchBoxEl: HTMLElement | null = null;
 
   constructor(app: App, plugin: RssSubscribePlugin) {
     super(app, plugin);
@@ -312,57 +335,203 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   private renderSubscriptions(containerEl: HTMLElement): void {
     /* The tab already says "subscriptions", so this row leads with the count
        instead of repeating the word as a section heading. */
-    new Setting(containerEl)
+    const toolbar = new Setting(containerEl)
       .setName(t("settings.feeds.count", { count: String(this.plugin.store.feeds.length) }))
-      .addButton((button) =>
-        button.setButtonText(t("settings.button.import")).onClick(() => {
-          void this.plugin.importOpmlFromFile();
-        })
-      )
-      .addButton((button) =>
-        button.setButtonText(t("settings.button.export")).onClick(() => {
-          void this.plugin.exportOpml();
-        })
-      );
+      /* Named so the narrow-width rule in `styles.css` can stack this one row
+         without touching the other `setting-item` rows in the tab. */
+      .setClass("rss-feed-toolbar");
+    this.feedCountEl = toolbar.nameEl;
 
-    const feeds: Feed[] = this.plugin.store.feeds;
-    if (feeds.length === 0) {
-      containerEl.createEl("p", {
-        text: t("settings.feeds.empty"),
-        cls: "rss-subscribe-settings-empty",
+    /* All three get the same explicit class because Obsidian's own button
+       defaults (grey fill + inset shadow) do not match the bordered buttons the
+       rest of this panel is drawn with. See `styles.css`. */
+    toolbar.addButton((button) => {
+      button.buttonEl.addClass("rss-toolbar-btn");
+      button.setButtonText(t("settings.button.import")).onClick(() => {
+        void this.plugin.importOpmlFromFile();
+      });
+    });
+    toolbar.addButton((button) => {
+      button.buttonEl.addClass("rss-toolbar-btn");
+      button.setButtonText(t("settings.button.export")).onClick(() => {
+        void this.plugin.exportOpml();
+      });
+    });
+    toolbar.addButton((button) => {
+      button.buttonEl.addClass("rss-toolbar-btn");
+      button.setButtonText(t("settings.button.add")).onClick(() => {
+        this.plugin.openAddFeedModal(null);
+      });
+    });
+
+    this.renderFeedSearch(containerEl);
+
+    const table = containerEl.createDiv({ cls: "rss-feed-table" });
+    table.setAttribute("role", "table");
+    table.setAttribute("aria-label", t("settings.tab.feeds"));
+
+    const head = table.createDiv({ cls: "rss-feed-thead" });
+    head.setAttribute("role", "row");
+    /* Three separate calls rather than a loop over a key list: `t()` has to see
+       string literals, and a computed key would read as an unused translation. */
+    const column = (label: string): void => {
+      head.createSpan({ text: label, attr: { role: "columnheader" } });
+    };
+    column(t("settings.feeds.column.title"));
+    column(t("settings.feeds.column.group"));
+    column(t("settings.feeds.column.actions"));
+
+    const rows = table.createDiv({ cls: "rss-feed-rows" });
+    rows.setAttribute("role", "rowgroup");
+
+    const empty = containerEl.createEl("p", {
+      cls: "rss-feed-empty",
+      text: t("settings.feeds.empty"),
+    });
+
+    this.feedTableEl = table;
+    this.feedRowsEl = rows;
+    this.feedEmptyEl = empty;
+
+    this.renderFeedRows();
+  }
+
+  /* ---------- subscriptions: search box ---------- */
+
+  private renderFeedSearch(containerEl: HTMLElement): void {
+    const box = containerEl.createDiv({ cls: "rss-feed-search" });
+    const text = box.createDiv({ cls: "rss-feed-search-text" });
+    text.createDiv({ cls: "rss-feed-search-name", text: t("settings.feeds.search.name") });
+    text.createDiv({ cls: "rss-feed-search-desc", text: t("settings.feeds.search.desc") });
+
+    const field = box.createDiv({ cls: "rss-feed-search-field" });
+    const input = field.createEl("input", {
+      type: "text",
+      cls: "rss-feed-search-input",
+      placeholder: t("settings.feeds.search.placeholder"),
+    });
+    input.value = this.feedQuery;
+    input.setAttribute("aria-label", t("settings.feeds.search.name"));
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+    input.addEventListener("input", () => {
+      this.feedQuery = input.value;
+      /* Only the rows are repainted, never the box itself: rebuilding the input
+         on every keystroke would drop the caret. */
+      this.syncFeedSearchState();
+      this.renderFeedRows();
+    });
+
+    const clear = field.createEl("button", { cls: "rss-feed-search-clear" });
+    clear.setAttribute("type", "button");
+    clear.setAttribute("aria-label", t("settings.feeds.search.clear"));
+    clear.setAttribute("data-tooltip-position", "bottom");
+    setIcon(clear, "x");
+    clear.addEventListener("click", () => {
+      this.feedQuery = "";
+      input.value = "";
+      input.focus();
+      this.syncFeedSearchState();
+      this.renderFeedRows();
+    });
+
+    this.feedSearchBoxEl = box;
+    this.syncFeedSearchState();
+  }
+
+  /* The clear button is only worth showing once there is something to clear. */
+  private syncFeedSearchState(): void {
+    if (!this.feedSearchBoxEl || !this.feedSearchBoxEl.isConnected) return;
+    this.feedSearchBoxEl.toggleClass("has-query", this.feedQuery.length > 0);
+  }
+
+  /* ---------- subscriptions: the list ---------- */
+
+  private renderFeedRows(): void {
+    const rows = this.feedRowsEl;
+    if (!rows || !rows.isConnected) return;
+
+    const feeds = this.plugin.store.feeds;
+    const query = this.feedQuery.trim().toLowerCase();
+    const visible = query ? feeds.filter((feed) => feedMatches(feed, query)) : feeds;
+
+    rows.empty();
+    if (this.feedTableEl) this.feedTableEl.hidden = feeds.length === 0;
+    if (this.feedEmptyEl) this.feedEmptyEl.hidden = feeds.length > 0;
+    this.feedCountEl?.setText(
+      t("settings.feeds.count", { count: String(feeds.length) })
+    );
+
+    if (feeds.length === 0) return;
+
+    if (visible.length === 0) {
+      rows.createEl("p", {
+        cls: "rss-feed-empty",
+        text: t("settings.feeds.noMatch", { query: this.feedQuery.trim() }),
       });
       return;
     }
 
-    for (const feed of feeds) {
-      new Setting(containerEl)
-        .setName(feed.title || feed.url)
-        .setDesc(feed.group ? `${feed.group} · ${feed.url}` : feed.url)
-        .addExtraButton((button) =>
-          button
-            .setIcon("refresh-cw")
-            .setTooltip(t("view.action.refreshFeed"))
-            .onClick(() => {
-              void this.plugin.refreshFeed(feed, false);
-            })
-        )
-        .addExtraButton((button) =>
-          button
-            .setIcon("pencil")
-            .setTooltip(t("view.action.editFeed"))
-            .onClick(() => {
-              new AddFeedModal(this.app, this.plugin, feed).open();
-            })
-        )
-        .addExtraButton((button) =>
-          button
-            .setIcon("trash-2")
-            .setTooltip(t("view.action.deleteFeed"))
-            .onClick(() => {
-              void this.plugin.removeFeed(feed).then(() => this.display());
-            })
-        );
-    }
+    for (const feed of visible) this.appendFeedRow(rows, feed);
+  }
+
+  /* Title / group / actions. The address rides along under the title instead of
+     getting a column of its own: at the width the settings modal actually
+     offers, a fourth column squeezes the address down to a few characters, and
+     the address is the least interesting of the four. */
+  private appendFeedRow(parent: HTMLElement, feed: Feed): void {
+    const row = parent.createDiv({ cls: "rss-feed-row" });
+    row.setAttribute("role", "row");
+
+    const titleCell = row.createDiv({ cls: "rss-feed-cell" });
+    titleCell.setAttribute("role", "cell");
+    titleCell.createSpan({ cls: "rss-feed-title", text: feed.title || feed.url });
+    titleCell.createSpan({ cls: "rss-feed-urlline", text: feed.url });
+
+    const groupCell = row.createDiv({ cls: "rss-feed-cell" });
+    groupCell.setAttribute("role", "cell");
+    groupCell
+      .createSpan({ cls: "rss-feed-group", text: feed.group || t("view.uncategorized") })
+      .toggleClass("is-none", !feed.group);
+
+    const actionCell = row.createDiv({ cls: "rss-feed-cell" });
+    actionCell.setAttribute("role", "cell");
+    const actions = actionCell.createDiv({ cls: "rss-feed-actions" });
+
+    this.appendFeedAction(actions, "refresh-cw", t("view.action.refreshFeed"), () => {
+      void this.plugin.refreshFeed(feed, false).then(() => this.renderFeedRows());
+    });
+    this.appendFeedAction(actions, "pencil", t("view.action.editFeed"), () => {
+      new AddFeedModal(this.app, this.plugin, feed).open();
+    });
+    this.appendFeedAction(
+      actions,
+      "trash-2",
+      t("view.action.deleteFeed"),
+      () => {
+        void this.plugin.removeFeed(feed).then(() => this.renderFeedRows());
+      },
+      true
+    );
+  }
+
+  private appendFeedAction(
+    parent: HTMLElement,
+    icon: string,
+    label: string,
+    onClick: () => void,
+    danger = false
+  ): void {
+    const button = parent.createEl("button", { cls: "rss-feed-action" });
+    button.setAttribute("type", "button");
+    button.setAttribute("aria-label", label);
+    button.setAttribute("data-tooltip-position", "bottom");
+    button.toggleClass("is-danger", danger);
+    setIcon(button, icon);
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      onClick();
+    });
   }
 
   private renderAbout(containerEl: HTMLElement): void {

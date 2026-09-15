@@ -944,9 +944,365 @@
   font-size: var(--font-ui-smaller);
 }
 
-.rss-subscribe-settings .rss-subscribe-settings-empty {
+/* ---------- subscriptions tab: toolbar ---------- */
+
+/* Obsidian paints every `<button>` that is not a `.clickable-icon` with
+   `background-color: var(--interactive-normal)` plus `box-shadow:
+   var(--input-shadow)` — that rule is (0,1,1), so a bare class selector loses
+   to it and the buttons come out as theme-grey blocks. The
+   `.rss-subscribe-settings` prefix puts these rules at (0,2,0) and wins, which
+   is also why every declaration that Obsidian sets on bare `button` (height,
+   padding, border, radius, appearance) is written out here rather than assumed. */
+.rss-subscribe-settings .rss-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background-color: var(--interactive-normal);
+  box-shadow: none;
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: var(--font-ui-small);
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-settings .rss-toolbar-btn svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+@media (hover: hover) {
+  .rss-subscribe-settings .rss-toolbar-btn:hover {
+    background-color: var(--interactive-hover);
+  }
+}
+
+.rss-subscribe-settings .rss-toolbar-btn:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+/* ---------- subscriptions tab: search box ---------- */
+
+/* A card, not a bare input: the label and its explanation sit on the left and
+   the field is pinned right, which is how every other row in this panel reads.
+   Geometry (20px padding, 8px radius, 206x38 field) is measured off the design
+   reference rather than derived from a token, because the panel has no other
+   card quite this shape. */
+.rss-subscribe-settings .rss-feed-search {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: auto;
+  margin: 0 0 16px;
+  padding: 20px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--background-secondary);
+}
+
+.rss-subscribe-settings .rss-feed-search-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rss-subscribe-settings .rss-feed-search-name {
+  color: var(--text-normal);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.rss-subscribe-settings .rss-feed-search-desc {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.rss-subscribe-settings .rss-feed-search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: 206px;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background-color: var(--interactive-normal);
+}
+
+/* `input[type=text]` carries a fill, a border, a shadow and `--input-height`
+   from Obsidian's own stylesheet. The prefix outranks all of it, but each
+   property still has to be named explicitly to undo it. */
+.rss-subscribe-settings .rss-feed-search input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+}
+
+.rss-subscribe-settings .rss-feed-search input::placeholder {
+  color: var(--text-faint);
+}
+
+.rss-subscribe-settings .rss-feed-search-clear {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  appearance: none;
+}
+
+/* Only worth showing once there is a query to drop. */
+.rss-subscribe-settings .rss-feed-search.has-query .rss-feed-search-clear {
+  display: inline-flex;
+}
+
+@media (hover: hover) {
+  .rss-subscribe-settings .rss-feed-search-clear:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+}
+
+.rss-subscribe-settings .rss-feed-search-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- subscriptions tab: list ---------- */
+
+/* Three columns: title (with the address as a quieter second line) / group /
+   actions. The address deliberately has no column of its own — measured at the
+   widths this settings modal actually offers, a fourth column squeezes it down
+   to a few characters. */
+.rss-subscribe-settings .rss-feed-table {
+  margin-top: 2px;
+}
+
+.rss-subscribe-settings .rss-feed-thead,
+.rss-subscribe-settings .rss-feed-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px 96px;
+  gap: 12px;
+  align-items: center;
+}
+
+.rss-subscribe-settings .rss-feed-thead {
+  padding: 0 4px 7px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+}
+
+.rss-subscribe-settings .rss-feed-thead > span:last-child {
+  text-align: right;
+}
+
+.rss-subscribe-settings .rss-feed-row {
+  min-height: 41px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.rss-subscribe-settings .rss-feed-row:last-child {
+  border-bottom-color: transparent;
+}
+
+@media (hover: hover) {
+  .rss-subscribe-settings .rss-feed-row:hover {
+    background-color: var(--background-modifier-hover);
+  }
+}
+
+.rss-subscribe-settings .rss-feed-cell {
+  min-width: 0;
+}
+
+/* Titles are single-line: the default treatment for a narrow list. A wrapped
+   title makes the row height jump and pushes the actions out of line. */
+.rss-subscribe-settings .rss-feed-title {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.rss-subscribe-settings .rss-feed-urlline {
+  display: block;
+  min-width: 0;
+  margin-top: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+}
+
+.rss-subscribe-settings .rss-feed-group {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+}
+
+.rss-subscribe-settings .rss-feed-group.is-none {
+  color: var(--text-faint);
+}
+
+/* Square, bordered icon buttons. Same (0,2,0) reasoning as the toolbar: without
+   the prefix these render as theme-grey pills at Obsidian's input height. */
+.rss-subscribe-settings .rss-feed-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.rss-subscribe-settings .rss-feed-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background-color: var(--background-primary);
+  box-shadow: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-settings .rss-feed-action svg {
+  width: 15px;
+  height: 15px;
+}
+
+@media (hover: hover) {
+  .rss-subscribe-settings .rss-feed-action:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+
+  .rss-subscribe-settings .rss-feed-action.is-danger:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+  }
+}
+
+.rss-subscribe-settings .rss-feed-action:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+/* Empty state, and the "nothing matches" line that replaces the rows. */
+.rss-subscribe-settings .rss-feed-empty {
+  margin: 0;
+  padding: 16px 4px;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
+  line-height: 1.6;
+}
+
+/* A phone settings pane is roughly 360px wide, and three fixed columns would
+   leave the title about 100px. Narrowing the two fixed tracks keeps the title
+   readable without dropping the group or the actions. */
+@media (max-width: 520px) {
+  /* Three toolbar buttons come to roughly 290px, which at this width leaves the
+     count about 20px — enough for one character per line. The row turns into a
+     column: count on top, buttons underneath. Measured at a 358px pane, where
+     the count used to wrap to seven lines. */
+  .rss-subscribe-settings .setting-item.rss-feed-toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .rss-subscribe-settings .setting-item.rss-feed-toolbar .setting-item-info,
+  .rss-subscribe-settings .setting-item.rss-feed-toolbar .setting-item-control {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rss-subscribe-settings .setting-item.rss-feed-toolbar .setting-item-control {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .rss-subscribe-settings .rss-feed-thead,
+  .rss-subscribe-settings .rss-feed-row {
+    grid-template-columns: minmax(0, 1fr) 88px 84px;
+    gap: 8px;
+  }
+
+  .rss-subscribe-settings .rss-feed-action {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* A 206px field next to a fixed label does not fit at this width, so the
+     label takes the top line and the field stretches underneath it. */
+  .rss-subscribe-settings .rss-feed-search {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .rss-subscribe-settings .rss-feed-search-field {
+    width: 100%;
+  }
 }
 
 .rss-subscribe-file-input {
