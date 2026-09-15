@@ -224,8 +224,11 @@ export class ListPane {
 
   private renderFeedList(pane: HTMLElement): void {
     const store = this.plugin.store;
+    // No "Subscriptions" heading here: the filter rows that follow ("All
+    // articles", "Unread", …) already read as the top of the list, and a lone
+    // label above them only added a line of chrome. The article list below
+    // keeps its own heading, which does carry information (the count).
     const section = pane.createDiv({ cls: "rss-feed-section" });
-    section.createDiv({ cls: "rss-section-label", text: t("view.section.feeds") });
 
     const all = store.listArticles().length;
     const unread = store.unreadCount();
