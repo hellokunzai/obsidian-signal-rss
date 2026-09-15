@@ -444,9 +444,9 @@ export class ListPane {
       const row = list.createEl("button", {
         cls: active ? "rss-article-row is-active" : "rss-article-row",
       });
+      // "Unread" is carried by the title's colour and weight alone — there is no
+      // marker element any more, so the title starts at the row's own padding.
       if (!article.read) row.addClass("is-unread");
-
-      row.createSpan({ cls: "rss-unread-dot" });
 
       const body = row.createSpan({ cls: "rss-article-body" });
       body.createSpan({ cls: "rss-article-title", text: article.title || article.link });

@@ -538,10 +538,14 @@
    `height: var(--input-height)` (30px) and `white-space: nowrap`. We beat it on
    padding but must opt out of both explicitly, otherwise the row is clamped to
    30px while its content needs ~38px — the meta line spills onto the next row
-   and the 2-line title clamp can never produce a second line. */
+   and the 2-line title clamp can never produce a second line.
+
+   Two tracks only — the title block and the trailing star. The unread marker
+   used to own a leading 6px track, which cost the title 14px (6 + the gap) for
+   a dot that duplicated the title's own colour/weight cue. */
 .rss-subscribe-view .rss-article-row {
   display: grid;
-  grid-template-columns: 6px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: 8px;
   align-items: start;
   width: 100%;
@@ -574,19 +578,6 @@
 .rss-subscribe-view .rss-article-row.is-active {
   background-color: var(--background-modifier-hover);
   box-shadow: inset 2px 0 0 var(--interactive-accent);
-}
-
-/* Unread marker keeps its slot when read so titles stay on one vertical line. */
-.rss-subscribe-view .rss-unread-dot {
-  width: 6px;
-  height: 6px;
-  margin-top: 6px;
-  border-radius: 50%;
-  background-color: var(--interactive-accent);
-}
-
-.rss-subscribe-view .rss-article-row:not(.is-unread) .rss-unread-dot {
-  background-color: transparent;
 }
 
 .rss-subscribe-view .rss-article-body {
@@ -639,13 +630,16 @@
   flex: 0 0 auto;
 }
 
+/* The row uses `align-items: start`, which is right for the title block but
+   pins a trailing-only decoration to the first line. `align-self: center` puts
+   the star in the middle of the row's height instead. */
 .rss-subscribe-view .rss-article-star {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
   width: 16px;
   height: 16px;
-  margin-top: 1px;
   color: var(--color-yellow, var(--text-accent));
 }
 
