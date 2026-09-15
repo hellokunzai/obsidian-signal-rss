@@ -820,18 +820,20 @@
        inset shadow, which the prefix outranks.
    `.is-active` lands at (0,3,0). */
 .rss-subscribe-settings .rss-settings-tabs {
-  /* The settings page is the scroll container, so without `sticky` the tabs
-     scroll away with the content. The background has to match the container's
-     own (`--background-primary`, per Obsidian's `.vertical-tab-content`) or the
-     rows would show through as they slide underneath. */
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  /* The bar scrolls with the panel instead of pinning itself to the top. It is
+     the first thing in the settings page, so pinning it meant paying a
+     permanent 36px of screen height for navigation the user reads once. That
+     also drops the need for a stacking context and for a background of its own:
+     both existed only to cover rows sliding underneath a pinned bar, and
+     nothing slides underneath a bar that scrolls along with them. */
   display: flex;
   align-items: stretch;
+  /* Four tabs measure ~404px, which stops fitting once the window narrows --
+     Obsidian's settings modal is capped at 90vw and its nav rail takes up to
+     250px of that. Without wrapping, the last tab gets clipped off the edge. */
+  flex-wrap: wrap;
   gap: 7px;
   padding: 0;
-  background-color: var(--background-primary);
   border-bottom: 1px solid var(--background-modifier-border);
 }
 

@@ -5,7 +5,7 @@ import { t } from "./i18n";
 import type { Feed } from "./types";
 import { AddFeedModal } from "./ui/add-feed-modal";
 
-type SettingsTabId = "general" | "feeds" | "notes";
+type SettingsTabId = "general" | "feeds" | "notes" | "about";
 
 interface SettingsTabDef {
   id: SettingsTabId;
@@ -13,15 +13,23 @@ interface SettingsTabDef {
   icon: string;
 }
 
-/* Icon ids are not free-form. Obsidian ships a trimmed Lucide subset, and the
-   two obvious choices are not in it: `settings` (the gear) and `rss` (the
-   broadcast arcs) both fail to resolve, and an unresolved id renders as an
-   empty svg slot. Every id below was checked against the icon registry in
-   obsidian.asar, so these three are known to exist. */
+/* Icon ids are not free-form. Obsidian ships a trimmed Lucide subset and the
+   obvious choices are missing: `settings` (the gear), `rss` (the broadcast
+   arcs) and `info` (the circled i) all fail to resolve, and an unresolved id
+   renders as an empty svg slot rather than throwing.
+
+   The way to get this wrong is to grep the asar: `"info":` does match, exactly
+   once, inside an unrelated switch statement, which reads like a hit and is
+   not one. The only trustworthy check is to lift the icon registry object out
+   of obsidian.asar and look the key up in it (1343 names on 1.13). Every id
+   below is in that list; `badge-info` is standing in for the missing `info`,
+   and it draws an "i" inside a badge rather than `circle-help`'s "?", which
+   would read as a help button. */
 const SETTINGS_TABS: SettingsTabDef[] = [
   { id: "general", labelKey: "settings.tab.general", icon: "sliders-horizontal" },
   { id: "feeds", labelKey: "settings.tab.feeds", icon: "radio-tower" },
   { id: "notes", labelKey: "settings.tab.notes", icon: "file-text" },
+  { id: "about", labelKey: "settings.tab.about", icon: "badge-info" },
 ];
 
 const PANEL_ID = "rss-subscribe-settings-panel";
@@ -54,10 +62,11 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
       this.renderSubscriptions(panel);
     } else if (this.activeTab === "notes") {
       this.renderNotes(panel);
+    } else if (this.activeTab === "about") {
+      this.renderAbout(panel);
     } else {
       this.renderGeneral(panel);
       this.renderReader(panel);
-      this.renderAbout(panel);
     }
   }
 
@@ -357,8 +366,10 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   }
 
   private renderAbout(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName(t("settings.section.about")).setHeading();
-
+    /* No section heading: the tab already reads "About", so a heading repeating
+       the same word right under it is noise. The subscriptions and note-export
+       tabs carry no heading for the same reason; only the general tab still has
+       them, because it holds two distinct groups (general and reader). */
     new Setting(containerEl).setName(
       t("settings.about.version", { version: this.plugin.manifest.version })
     );
