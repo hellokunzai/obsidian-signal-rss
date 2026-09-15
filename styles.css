@@ -992,6 +992,13 @@
   outline-offset: 1px;
 }
 
+/* No layout rule for the cache folder row on purpose. It is a stock Obsidian
+   row — a text field and a button — and both the field and the row's own flex
+   behaviour are better left alone: measured, the control takes exactly the
+   177px the field asks for, the button sits on the same line flush with the
+   row's right edge, and letting the control wrap instead shrinks it to the
+   field alone and drops the button onto a second line. */
+
 /* ---------- subscriptions tab: search box ---------- */
 
 /* A card, not a bare input: the label and its explanation sit on the left and

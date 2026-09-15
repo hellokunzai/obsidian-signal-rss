@@ -7,11 +7,12 @@ import {
 import type {
   AddFeedResult,
   Article,
+  CacheMigrationResult,
   DiscoverResult,
   Feed,
   RssSubscribeSettings,
 } from "./types";
-import { FeedStore, newFeedId } from "./core/store";
+import { FeedStore, cacheFolderPath, newFeedId } from "./core/store";
 import type { ArticleRef } from "./core/store";
 import { matchesFilters, matchesQuery } from "./core/store";
 import { networkHint } from "./core/net-error";
@@ -126,7 +127,11 @@ export default class RssSubscribePlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
 
-    this.store = new FeedStore(this.app, this.manifest.id);
+    this.store = new FeedStore(
+      this.app,
+      this.manifest.id,
+      cacheFolderPath(this.settings.cacheFolder)
+    );
     this.store.feeds = this.storedFeeds;
     await this.store.loadAll();
 
@@ -269,6 +274,11 @@ export default class RssSubscribePlugin extends Plugin {
     // Pane sizes come from a drag handle, so a corrupted store could hold
     // anything. Clamp on the way in and let the view re-clamp on every render.
     this.settings.feedPaneHeight = sanitizePaneSize(this.settings.feedPaneHeight);
+    // Hand-typed and hand-editable, so it is normalised in both directions: a
+    // data.json holding `null` or `../../notes` must not decide where the
+    // caches go.
+    this.settings.cacheFolder = cacheFolderPath(this.settings.cacheFolder);
+    this.settings.cacheFolderPrevious = asText(this.settings.cacheFolderPrevious);
     const feeds: Feed[] = [];
     if (data && Array.isArray(data.feeds)) {
       for (const raw of data.feeds) {
@@ -348,15 +358,83 @@ export default class RssSubscribePlugin extends Plugin {
   }
 
   async resetSettings(): Promise<void> {
-    this.settings = { ...DEFAULT_SETTINGS };
+    /* Flush first and re-point the store afterwards: resetting the folder
+       without moving the store would leave the pending articles addressed to
+       a folder the settings no longer name. */
+    await this.store.flush();
+    const previous = this.store.folder;
+    this.settings = { ...DEFAULT_SETTINGS, cacheFolderPrevious: previous };
     await this.persist();
+    this.store.folder = cacheFolderPath(DEFAULT_SETTINGS.cacheFolder);
+    await this.store.loadAll();
     this.applyScheduler();
     this.notifyViews();
+    this.updateRibbonBadge();
     new Notice(t("settings.reset.done"));
   }
 
   async persistCache(): Promise<void> {
     await this.store.flush();
+  }
+
+  /**
+   * Point the store at whatever `settings.cacheFolder` currently holds, if that
+   * is not where it already is. Returns whether anything moved, so the settings
+   * row knows whether a notice is worth showing.
+   *
+   * The order matters: pending writes are flushed to the folder they were read
+   * from *before* the switch, and the folder that is being left behind is
+   * remembered so the migration button can still reach it.
+   */
+  async applyCacheFolder(): Promise<boolean> {
+    const next = cacheFolderPath(this.settings.cacheFolder);
+    /* The typed value can differ from the path it normalises to (a trailing
+       slash, a leading one). Writing it back keeps the field honest about
+       where the caches actually are. */
+    const retargeted = next !== this.settings.cacheFolder;
+    this.settings.cacheFolder = next;
+    if (next === this.store.folder) {
+      if (retargeted) await this.saveSettings();
+      return false;
+    }
+
+    await this.store.flush();
+    this.settings.cacheFolderPrevious = this.store.folder;
+    await this.saveSettings();
+    this.store.folder = next;
+    await this.store.loadAll();
+    this.notifyViews();
+    this.updateRibbonBadge();
+    new Notice(t("notice.cacheFolderChanged", { path: next }));
+    return true;
+  }
+
+  /**
+   * Move the caches of every folder the store has used before into the current
+   * one. Nothing happens on its own: pointing the setting somewhere else leaves
+   * the old files where they are, and this is the deliberate second step.
+   */
+  async migrateCache(): Promise<CacheMigrationResult> {
+    try {
+      /* The field may hold a folder that has not been applied yet — the settings
+         row debounces that — so settle it first, or the files would be moved
+         into the folder the store is about to leave. */
+      await this.applyCacheFolder();
+      await this.store.flush();
+      const report = await this.store.migrateFrom(
+        [this.settings.cacheFolderPrevious, this.store.legacyFolder],
+        this.settings.maxArticlesPerFeed
+      );
+      if (report.copied + report.merged > 0) {
+        await this.store.loadAll();
+        this.notifyViews();
+        this.updateRibbonBadge();
+      }
+      return { ok: true, feeds: report.copied + report.merged, articles: report.articles };
+    } catch (error) {
+      console.error("RSS Subscribe: could not migrate the cache", error);
+      return { ok: false, message: describeError(error) };
+    }
   }
 
   applyScheduler(): void {

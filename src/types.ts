@@ -62,6 +62,14 @@ export type AddFeedResult =
   | { ok: true; feed: Feed }
   | { ok: false; message: string; hint: string };
 
+/**
+ * Outcome of pulling the caches of an older folder into the current one.
+ * `feeds: 0` is a success too — it just means there was nothing left to move.
+ */
+export type CacheMigrationResult =
+  | { ok: true; feeds: number; articles: number }
+  | { ok: false; message: string };
+
 export interface RssSubscribeSettings {
   version: number;
   refreshIntervalMinutes: number;
@@ -78,6 +86,18 @@ export interface RssSubscribeSettings {
   markReadOnOpen: boolean;
   fetchFulltextOnOpen: boolean;
   fetchFulltextOnRefresh: boolean;
+  /**
+   * Vault-relative folder holding one JSON file per feed. The read and starred
+   * flags, and every extracted full text, live in there, so pointing this
+   * somewhere else is a migration rather than a rename: the old folder is
+   * remembered in `cacheFolderPrevious` so the user can pull the data across.
+   */
+  cacheFolder: string;
+  /**
+   * The folder that was in use before the last switch. Only the "migrate cache"
+   * button reads it, which is why it stays out of the settings UI.
+   */
+  cacheFolderPrevious: string;
   readerFontSize: number;
   readerLineHeight: number;
   noteFolder: string;
@@ -91,6 +111,13 @@ export interface RssSubscribeSettings {
 
 export const SETTINGS_VERSION = 1;
 
+/**
+ * Vault-relative folder the article caches live in. A dot folder, so it stays
+ * out of the file explorer and out of Obsidian's index — it is machine state,
+ * not notes. Kept next to `DEFAULT_SETTINGS` because it *is* a default value.
+ */
+export const DEFAULT_CACHE_FOLDER = ".rss-subscribe";
+
 export const DEFAULT_SETTINGS: RssSubscribeSettings = {
   version: SETTINGS_VERSION,
   refreshIntervalMinutes: 60,
@@ -101,6 +128,8 @@ export const DEFAULT_SETTINGS: RssSubscribeSettings = {
   markReadOnOpen: true,
   fetchFulltextOnOpen: true,
   fetchFulltextOnRefresh: false,
+  cacheFolder: DEFAULT_CACHE_FOLDER,
+  cacheFolderPrevious: "",
   readerFontSize: 16,
   readerLineHeight: 1.7,
   noteFolder: "RSS Inbox",

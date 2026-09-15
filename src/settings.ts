@@ -1,7 +1,8 @@
-import { PluginSettingTab, Setting, setIcon } from "obsidian";
-import type { App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, setIcon } from "obsidian";
+import type { App, ButtonComponent } from "obsidian";
 import type RssSubscribePlugin from "./main";
 import { t } from "./i18n";
+import { DEFAULT_CACHE_FOLDER } from "./types";
 import type { Feed } from "./types";
 import { AddFeedModal } from "./ui/add-feed-modal";
 
@@ -34,6 +35,13 @@ const SETTINGS_TABS: SettingsTabDef[] = [
 
 const PANEL_ID = "rss-subscribe-settings-panel";
 
+/* How long the cache folder field waits after the last keystroke before the
+   store is re-pointed at it. Applying on every keystroke would create a folder
+   per half-typed path and empty the article list on the way, so the value is
+   only acted on once the typing has stopped — and, independently, on blur or
+   Enter for the user who wants it to happen right now. */
+const CACHE_FOLDER_DEBOUNCE_MS = 600;
+
 /* Matching is done on a lowercased haystack built per call rather than on a
    cached index: the list is rebuilt from live plugin state anyway, and a cache
    here would be one more thing to invalidate after an OPML import. */
@@ -64,6 +72,12 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   private feedEmptyEl: HTMLElement | null = null;
   private feedSearchBoxEl: HTMLElement | null = null;
 
+  /* The cache folder field, and the timer that settles it. Both belong to the
+     tab instance rather than to a render, because `display()` throws the field
+     away and the pending keystrokes have to survive that. */
+  private cacheFolderInputEl: HTMLInputElement | null = null;
+  private cacheFolderTimer: number | null = null;
+
   constructor(app: App, plugin: RssSubscribePlugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -93,6 +107,16 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     }
   }
 
+  /**
+   * Closing the settings tab settles the folder the same way a tab switch
+   * does: the panel is destroyed, no `blur` fires, and the debounce would
+   * otherwise be the only thing left holding a half-typed value.
+   */
+  hide(): void {
+    this.applyCacheFolderNow();
+    super.hide();
+  }
+
   private tabDomId(id: SettingsTabId): string {
     return `rss-settings-tab-${id}`;
   }
@@ -101,6 +125,10 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     if (id === this.activeTab) {
       return;
     }
+    /* The panel and its field are about to be thrown away, and removing a
+       focused input from the DOM fires no `blur` — so settle the folder here
+       rather than leaving a typed value the store never picked up. */
+    this.applyCacheFolderNow();
     this.activeTab = id;
     /* A full re-render is the cheapest correct move here: `display()` already
        knows how to draw a panel, and every control in it reads live plugin
@@ -240,6 +268,92 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+
+    new Setting(containerEl)
+      .setName(t("settings.cacheFolder.name"))
+      .setDesc(t("settings.cacheFolder.desc"))
+      .addText((text) => {
+        text.inputEl.setAttribute("aria-label", t("settings.cacheFolder.name"));
+        text.inputEl.setAttribute("autocomplete", "off");
+        text.inputEl.setAttribute("spellcheck", "false");
+        text.setPlaceholder(DEFAULT_CACHE_FOLDER);
+        text.setValue(this.plugin.settings.cacheFolder);
+        text.onChange(async (value) => {
+          /* Written straight through so the text cannot be lost, but only
+             applied to the store once the typing has settled. */
+          this.plugin.settings.cacheFolder = value;
+          await this.plugin.saveSettings();
+          this.scheduleCacheFolderApply();
+        });
+        text.inputEl.addEventListener("blur", () => this.applyCacheFolderNow());
+        text.inputEl.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          this.applyCacheFolderNow();
+        });
+        this.cacheFolderInputEl = text.inputEl;
+      })
+      .addButton((button) => {
+        button.buttonEl.addClass("rss-toolbar-btn");
+        button.setButtonText(t("settings.cacheFolder.migrate")).onClick(() => {
+          void this.runCacheMigration(button);
+        });
+      });
+  }
+
+  /* ---------- cache folder ---------- */
+
+  private scheduleCacheFolderApply(): void {
+    this.cancelCacheFolderApply();
+    this.cacheFolderTimer = window.setTimeout(() => {
+      this.cacheFolderTimer = null;
+      void this.plugin.applyCacheFolder().then(() => this.syncCacheFolderInput());
+    }, CACHE_FOLDER_DEBOUNCE_MS);
+  }
+
+  private applyCacheFolderNow(): void {
+    this.cancelCacheFolderApply();
+    void this.plugin.applyCacheFolder().then(() => this.syncCacheFolderInput());
+  }
+
+  private cancelCacheFolderApply(): void {
+    if (this.cacheFolderTimer === null) return;
+    window.clearTimeout(this.cacheFolderTimer);
+    this.cacheFolderTimer = null;
+  }
+
+  /** Show the path that is actually in use, once it differs from what is typed. */
+  private syncCacheFolderInput(): void {
+    const input = this.cacheFolderInputEl;
+    if (!input || !input.isConnected) return;
+    const applied = this.plugin.settings.cacheFolder;
+    if (input.value !== applied) input.value = applied;
+  }
+
+  private async runCacheMigration(button: ButtonComponent): Promise<void> {
+    if (button.buttonEl.disabled) return;
+    this.cancelCacheFolderApply();
+    button.setDisabled(true);
+    button.setButtonText(t("settings.cacheFolder.migrating"));
+    try {
+      const result = await this.plugin.migrateCache();
+      if (!result.ok) {
+        new Notice(t("notice.cacheMigrateFailed", { message: result.message }));
+      } else if (result.feeds === 0) {
+        new Notice(t("notice.cacheMigrateEmpty"));
+      } else {
+        new Notice(
+          t("notice.cacheMigrated", {
+            feeds: String(result.feeds),
+            articles: String(result.articles),
+          })
+        );
+      }
+    } finally {
+      button.setDisabled(false);
+      button.setButtonText(t("settings.cacheFolder.migrate"));
+      this.syncCacheFolderInput();
+    }
   }
 
   private renderReader(containerEl: HTMLElement): void {

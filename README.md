@@ -65,6 +65,7 @@ The list only ever lives in the sidebar, so there is no position to choose: **RS
 | Mark as read when opened | Clear the unread flag as soon as an article is opened |
 | Fetch full text when opened | Fetch the article page when a feed only ships a summary |
 | Fetch full text while refreshing | Do that during refresh instead, so articles are readable offline |
+| Custom cache folder | Vault-relative folder holding the caches; *Migrate cache* moves the data across from a folder used earlier |
 | Reader font size / line height | Typography of the article body |
 | Note folder | Destination folder for saved articles |
 | File name template | Template for the note file name |
@@ -75,7 +76,7 @@ The list only ever lives in the sidebar, so there is no position to choose: **RS
 ## Where data lives
 
 - Subscriptions, read/starred state and settings are stored in the plugin's `data.json`.
-- Article content is cached under `<your vault>/.obsidian/plugins/rss-subscribe/cache/`. One file per feed; nothing is written into your notes folder unless you explicitly save an article.
+- Article content is cached under `.rss-subscribe/` at the root of your vault, one JSON file per feed — a dot folder, so it stays out of the file explorer and out of Obsidian's index. The folder is configurable; earlier versions kept it at `<your vault>/.obsidian/plugins/rss-subscribe/cache/`, and **Settings → Custom cache folder → Migrate cache** moves anything still sitting in an older folder (including that one) into the current folder, merging rather than overwriting so no read flag or extracted body is lost. Nothing is written into your notes folder unless you explicitly save an article.
 
 ## Privacy and network access
 

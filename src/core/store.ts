@@ -1,10 +1,32 @@
 import type { App } from "obsidian";
 import type { Article, Feed, ParsedFeed } from "../types";
+import { DEFAULT_CACHE_FOLDER } from "../types";
 import { t } from "../i18n";
 import { safeHtml } from "./sanitize";
 
 const MAX_STORED_BODY = 200000;
 const MAX_ITEMS_PER_FETCH = 300;
+
+/**
+ * Turn whatever the user typed into the vault-relative folder the store uses.
+ *
+ * The value is typed by hand, so it arrives in every shape: a bare name, a
+ * leading slash, backslashes from a copy-paste out of Explorer, `.` noise. All
+ * of those collapse to the same path here. `..` resolves rather than being
+ * rejected — popping past the vault root leaves nothing, and an empty result
+ * falls back to the default instead of the vault root, which would turn the
+ * whole vault into the cache folder.
+ */
+export function cacheFolderPath(value: unknown): string {
+  const parts: string[] = [];
+  for (const chunk of String(value ?? "").split(/[\\/]+/)) {
+    const part = chunk.trim();
+    if (!part || part === ".") continue;
+    if (part === "..") parts.pop();
+    else parts.push(part);
+  }
+  return parts.length > 0 ? parts.join("/") : DEFAULT_CACHE_FOLDER;
+}
 
 export function articleId(seed: string): string {
   let h1 = 5381;
@@ -89,6 +111,63 @@ export interface ArticleRef {
   feed: Feed;
 }
 
+/** What a cache migration did, in the terms the notice reports it in. */
+export interface CacheMigrationReport {
+  /** Feeds whose cache file was created in the target folder. */
+  copied: number;
+  /** Feeds whose file already existed there and was merged into. */
+  merged: number;
+  /** Articles carried across from the sources, before de-duplication. */
+  articles: number;
+}
+
+/**
+ * Fold one cached copy of an article into another. Used only by the folder
+ * migration, where the two sides are two snapshots of the same feed taken in
+ * different folders: neither may win outright, because each can hold the newer
+ * half. `over` is the copy that was already in the target folder, so it keeps
+ * the content, while everything a migration must not lose — a read flag, a
+ * starred flag, an extracted body — survives from either side.
+ */
+function combineCachedArticles(base: Article, over: Article): Article {
+  const fulltext = over.fulltext || base.fulltext;
+  return {
+    id: over.id,
+    feedId: over.feedId || base.feedId,
+    title: over.title || base.title,
+    link: over.link || base.link,
+    author: over.author || base.author,
+    publishedAt: over.publishedAt || base.publishedAt,
+    summary: over.summary || base.summary,
+    content: over.content || base.content,
+    fulltext,
+    fulltextFetchedAt: Math.max(over.fulltextFetchedAt, base.fulltextFetchedAt),
+    /* A failure only once both sides failed. If either one never tried, the
+       flag has to stay off so the next refresh may try again. */
+    fulltextFailed: fulltext ? false : over.fulltextFailed && base.fulltextFailed,
+    read: over.read || base.read,
+    starred: over.starred || base.starred,
+    savedPath: over.savedPath || base.savedPath,
+  };
+}
+
+/** Union of two cached lists, newest first, with the target copy winning. */
+function combineCachedLists(
+  target: Article[],
+  source: Article[],
+  maxArticles: number
+): Article[] {
+  const byId = new Map<string, Article>();
+  for (const article of source) byId.set(article.id, article);
+  for (const article of target) {
+    const previous = byId.get(article.id);
+    byId.set(article.id, previous ? combineCachedArticles(previous, article) : article);
+  }
+  const merged = Array.from(byId.values());
+  merged.sort((a, b) => b.publishedAt - a.publishedAt);
+  return merged.slice(0, Math.max(20, maxArticles));
+}
+
 function pathSafe(id: string): string {
   return id.replace(/[^a-z0-9-]/gi, "");
 }
@@ -96,17 +175,31 @@ function pathSafe(id: string): string {
 export class FeedStore {
   feeds: Feed[] = [];
 
+  /**
+   * Vault-relative folder the per-feed JSON files live in. Reassigned by
+   * `RssSubscribePlugin.applyCacheFolder`, and only ever after the store has
+   * been flushed — a pending write belongs to the folder it was read from.
+   */
+  folder: string;
+
   private cache = new Map<string, Article[]>();
   private dirty = new Set<string>();
   private app: App;
   private pluginId: string;
 
-  constructor(app: App, pluginId: string) {
+  constructor(app: App, pluginId: string, folder: string) {
     this.app = app;
     this.pluginId = pluginId;
+    this.folder = folder;
   }
 
-  get folder(): string {
+  /**
+   * Where 0.7.0 and older kept the caches: inside the plugin folder, which is
+   * the location the folder setting now replaces. Offered as a migration
+   * source on top of the previous setting, so an upgrade does not silently
+   * look like an empty reader.
+   */
+  get legacyFolder(): string {
     return `${this.app.vault.configDir}/plugins/${this.pluginId}/cache`;
   }
 
@@ -134,7 +227,11 @@ export class FeedStore {
   }
 
   private async readCache(feedId: string): Promise<Article[]> {
-    const path = this.cachePath(feedId);
+    return this.readCacheFile(this.cachePath(feedId), feedId);
+  }
+
+  /** `label` only feeds the error message; `path` is what gets read. */
+  private async readCacheFile(path: string, label: string): Promise<Article[]> {
     try {
       const adapter = this.app.vault.adapter;
       if (!(await adapter.exists(path))) return [];
@@ -148,7 +245,7 @@ export class FeedStore {
       }
       return out;
     } catch (error) {
-      console.error(`RSS Subscribe: could not read the cache of ${feedId}`, error);
+      console.error(`RSS Subscribe: could not read the cache of ${label}`, error);
       return [];
     }
   }
@@ -333,6 +430,87 @@ export class FeedStore {
       } catch (error) {
         console.error(`RSS Subscribe: could not write the cache of ${feedId}`, error);
       }
+    }
+  }
+
+  /**
+   * Pull the caches of `sources` into the current folder, one feed file at a
+   * time, and drop each source file once its content is safely in the target.
+   * A feed that exists on both sides is merged rather than overwritten: the
+   * target side is usually the fresher one while the source side is often the
+   * only place a body was ever saved, so neither may simply win.
+   *
+   * A source that holds nothing is skipped silently — that is the normal state
+   * of the legacy folder once a migration has run. The caller is expected to
+   * reload afterwards: nothing here touches the in-memory cache.
+   */
+  async migrateFrom(sources: string[], maxArticles: number): Promise<CacheMigrationReport> {
+    const report: CacheMigrationReport = { copied: 0, merged: 0, articles: 0 };
+    const adapter = this.app.vault.adapter;
+    const visited = new Set<string>();
+    for (const source of sources) {
+      if (!source || source === this.folder || visited.has(source)) continue;
+      visited.add(source);
+      let files: string[];
+      try {
+        if (!(await adapter.exists(source))) continue;
+        files = (await adapter.list(source)).files;
+      } catch (error) {
+        console.error(`RSS Subscribe: could not list the cache folder ${source}`, error);
+        continue;
+      }
+      for (const file of files) {
+        const name = file.slice(file.lastIndexOf("/") + 1);
+        if (name.toLowerCase().endsWith(".json")) {
+          await this.moveCacheFile(file, name, maxArticles, report);
+        }
+      }
+      try {
+        await adapter.rmdir(source, false);
+      } catch {
+        /* Non-recursive on purpose, and quiet: a folder that still holds
+           something (a stray file, a subfolder) is not empty enough to remove,
+           and leaving it behind costs nothing. */
+      }
+    }
+    return report;
+  }
+
+  private async moveCacheFile(
+    sourcePath: string,
+    name: string,
+    maxArticles: number,
+    report: CacheMigrationReport
+  ): Promise<void> {
+    const adapter = this.app.vault.adapter;
+    const incoming = await this.readCacheFile(sourcePath, sourcePath);
+    if (incoming.length === 0) return;
+
+    const targetPath = `${this.folder}/${name}`;
+    await this.ensureFolder();
+    const existing = await this.readCacheFile(targetPath, targetPath);
+    try {
+      await adapter.write(
+        targetPath,
+        JSON.stringify(combineCachedLists(existing, incoming, maxArticles))
+      );
+    } catch (error) {
+      /* Nothing is deleted below, so a failed write leaves the data where it
+         was and the button can simply be pressed again. */
+      console.error(`RSS Subscribe: could not write the migrated cache of ${name}`, error);
+      return;
+    }
+
+    if (existing.length > 0) report.merged += 1;
+    else report.copied += 1;
+    report.articles += incoming.length;
+
+    try {
+      await adapter.remove(sourcePath);
+    } catch (error) {
+      /* Already written to the target folder, so the leftover copy is only
+         untidy — not worth failing the whole migration over. */
+      console.error(`RSS Subscribe: could not remove the old cache of ${name}`, error);
     }
   }
 

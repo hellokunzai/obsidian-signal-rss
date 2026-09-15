@@ -1,6 +1,6 @@
 {
   "name": "rss-subscribe",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Subscribe to RSS and Atom feeds, read articles in a dedicated reader tab, and save any article to your vault as a Markdown note.",
   "main": "main.js",
   "scripts": {

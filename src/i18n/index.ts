@@ -95,6 +95,10 @@ const en: Dict = {
   "notice.groupDeletedEmpty": "Deleted the group {{name}}",
   "notice.groupNeedsName": "Enter a group name first",
   "notice.groupExists": "The group {{name}} already exists",
+  "notice.cacheFolderChanged": "Cache folder switched to {{path}}",
+  "notice.cacheMigrated": "Migrated the cache of {{feeds}} feeds ({{articles}} articles)",
+  "notice.cacheMigrateEmpty": "No older cache left to migrate",
+  "notice.cacheMigrateFailed": "Could not migrate the cache: {{message}}",
 
   "modal.addFeed.title": "Add feed",
   "modal.addFeed.url": "Feed or site URL",
@@ -145,6 +149,11 @@ const en: Dict = {
   "settings.fetchFulltextOnRefresh.name": "Fetch full text while refreshing",
   "settings.fetchFulltextOnRefresh.desc":
     "Slower refreshes, but articles stay readable offline. Only applies to feeds that ship summaries.",
+  "settings.cacheFolder.name": "Custom cache folder",
+  "settings.cacheFolder.desc":
+    "Where the article caches live, relative to the vault root. Use “Migrate cache” to move existing files.",
+  "settings.cacheFolder.migrate": "Migrate cache",
+  "settings.cacheFolder.migrating": "Migrating…",
   "settings.fontSize.name": "Reader font size",
   "settings.fontSize.desc": "Font size of the article body, in pixels.",
   "settings.lineHeight.name": "Reader line height",
@@ -289,6 +298,10 @@ const zhCn: Dict = {
   "notice.groupDeletedEmpty": "已删除分组 {{name}}",
   "notice.groupNeedsName": "请先填写分组名称",
   "notice.groupExists": "分组 {{name}} 已经存在",
+  "notice.cacheFolderChanged": "缓存目录已切换为 {{path}}",
+  "notice.cacheMigrated": "已迁移 {{feeds}} 个订阅源的缓存，共 {{articles}} 篇文章",
+  "notice.cacheMigrateEmpty": "没有找到可迁移的旧缓存",
+  "notice.cacheMigrateFailed": "迁移缓存失败：{{message}}",
 
   "modal.addFeed.title": "添加订阅源",
   "modal.addFeed.url": "订阅源地址或网站地址",
@@ -336,6 +349,11 @@ const zhCn: Dict = {
   "settings.fetchFulltextOnRefresh.name": "刷新时抓取全文",
   "settings.fetchFulltextOnRefresh.desc":
     "刷新会变慢，但之后可以离线阅读全文。只对只给摘要的订阅源生效。",
+  "settings.cacheFolder.name": "自定义缓存目录",
+  "settings.cacheFolder.desc":
+    "文章缓存的存放位置，相对 vault 根目录。改名后要点「迁移缓存」才搬动旧数据。",
+  "settings.cacheFolder.migrate": "迁移缓存",
+  "settings.cacheFolder.migrating": "迁移中…",
   "settings.fontSize.name": "阅读字号",
   "settings.fontSize.desc": "文章正文的字号，单位像素。",
   "settings.lineHeight.name": "阅读行高",
