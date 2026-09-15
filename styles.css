@@ -20,10 +20,9 @@
 
 /* ---------- search row ---------- */
 
-/* Search lives at the top of the left column, above the feed list. It is a flex
-   row rather than a plain block because the list's show/hide switch rides at
-   its end: the same control that used to own a toolbar row of its own, with no
-   extra strip of chrome above the list. */
+/* Search sits at the top of the list pane, above the feed tree. The row is a
+   flex line so the input can stretch to the full width: `flex: 1 1 auto` on the
+   input is what sizes it, not a hard-coded width. */
 .rss-subscribe-view .rss-search-bar {
   display: flex;
   align-items: center;
@@ -75,14 +74,6 @@
   height: 16px;
 }
 
-/* Folded away: the icon carries the state so the button reads as "pressed"
-   without growing a background the rest of the row does not have. Declared
-   after the hover block on purpose — same specificity, so source order decides
-   and hovering a pressed switch keeps the accent colour. */
-.rss-subscribe-view .rss-list-toggle[aria-pressed="true"] {
-  color: var(--text-accent);
-}
-
 .rss-subscribe-view .rss-button {
   display: inline-flex;
   align-items: center;
@@ -123,36 +114,16 @@
 
 /* ---------- panes ---------- */
 
-.rss-subscribe-view .rss-body {
-  display: flex;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-/* The width comes from `--rss-list-width`, written by the column drag handle.
-   No `max-width` here: the clamp needs the live container size, so it lives in
-   the view (`clampListWidth`) and is re-applied on every render and resize. */
+/* The subscription list now only ever lives in the right sidebar, so the pane
+   fills the available space. */
 .rss-subscribe-view .rss-list-pane {
   display: flex;
   flex-direction: column;
-  /* The drag handle writes a pixel count that we compare against `offsetWidth`.
-     `border-box` makes the CSS width and the measured width the same number. */
   box-sizing: border-box;
-  flex: 0 0 auto;
-  flex-basis: var(--rss-list-width, 300px);
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   background-color: var(--background-secondary);
-}
-
-/* The sidebar copy of the list is the whole panel, so it fills the column
-   instead of holding a fixed width. Same specificity as the rule above on
-   purpose — source order is what settles it, so keep it after. */
-.rss-subscribe-view .rss-list-pane-docked {
-  flex: 1 1 auto;
-  flex-basis: auto;
-  width: auto;
-  border-right: none;
 }
 
 /* Same idea for the feed section: the row handle writes `--rss-feed-height`,
@@ -244,31 +215,6 @@
   outline: none;
 }
 
-.rss-subscribe-view .rss-resizer-col {
-  width: 5px;
-  cursor: col-resize;
-}
-
-.rss-subscribe-view .rss-resizer-col::before {
-  top: 0;
-  bottom: 0;
-  left: 2px;
-  width: 1px;
-}
-
-.rss-subscribe-view .rss-resizer-col.is-dragging::before,
-.rss-subscribe-view .rss-resizer-col:focus-visible::before {
-  left: 1px;
-  width: 3px;
-}
-
-@media (hover: hover) {
-  .rss-subscribe-view .rss-resizer-col:hover::before {
-    left: 1px;
-    width: 3px;
-  }
-}
-
 .rss-subscribe-view .rss-resizer-row {
   height: 7px;
   cursor: row-resize;
@@ -305,32 +251,12 @@
   user-select: none;
 }
 
-.rss-subscribe-view.rss-resizing-x .rss-shell * {
-  cursor: col-resize;
-}
-
 .rss-subscribe-view.rss-resizing-y .rss-shell * {
   cursor: row-resize;
 }
 
 /* A 5px hairline is far too thin for a finger. */
 @media (pointer: coarse) {
-  .rss-subscribe-view .rss-resizer-col {
-    width: 14px;
-  }
-
-  .rss-subscribe-view .rss-resizer-col::before {
-    left: 6px;
-  }
-
-  /* No `:hover` variant here: a coarse pointer is almost never a hovering one,
-     and the hover rule above already carries that state for a hybrid device. */
-  .rss-subscribe-view .rss-resizer-col.is-dragging::before,
-  .rss-subscribe-view .rss-resizer-col:focus-visible::before {
-    left: 5px;
-    width: 4px;
-  }
-
   .rss-subscribe-view .rss-resizer-row {
     height: 14px;
   }
@@ -852,35 +778,6 @@
   margin-top: 6px;
 }
 
-/* ---------- single pane mode ---------- */
-
-.rss-subscribe-view .rss-back-button {
-  display: none;
-}
-
-/* Stacked panes: the stored width no longer applies, and the column handle is
-   hidden by the view. `flex-basis: auto` here also cancels the fallback width. */
-.rss-subscribe-view .rss-shell.is-narrow .rss-list-pane {
-  flex: 1 1 auto;
-  max-width: none;
-}
-
-.rss-subscribe-view .rss-shell.is-narrow .rss-reader-pane {
-  display: none;
-}
-
-.rss-subscribe-view .rss-shell.is-narrow.is-narrow-reader .rss-list-pane {
-  display: none;
-}
-
-.rss-subscribe-view .rss-shell.is-narrow.is-narrow-reader .rss-reader-pane {
-  display: flex;
-}
-
-.rss-subscribe-view .rss-shell.is-narrow.is-narrow-reader .rss-back-button {
-  display: inline-flex;
-}
-
 /* ---------- settings tab ---------- */
 
 .rss-subscribe-settings .rss-subscribe-template-input {
@@ -923,14 +820,12 @@
 
 /* ---------- mobile ---------- */
 
-/* Obsidian's mobile shell has no split panes, no hovering pointer and no cursor
-   to aim at a hairline, and `Platform.isMobile` already forces the stacked
-   layout (see `RssSubscribeView.computeNarrow`). Everything below is about
-   making that stacked layout usable with a thumb: real touch targets, a search
-   box iOS will not zoom on, and padding that clears the gesture bar. */
-/* The list switch now shares this row, and its touch target is 38px tall, so
-   the row's own padding is trimmed to keep the strip close to the height the
-   old toolbar row had. */
+/* Obsidian's mobile shell has no hovering pointer and no cursor to aim at a
+   hairline. Everything below is about making the list and the reader usable
+   with a thumb: real touch targets, a search box iOS will not zoom on, and
+   padding that clears the gesture bar. */
+/* The input already carries the platform's input height on a touch device, so
+   the row's own padding is trimmed to keep the strip from growing past it. */
 .is-mobile .rss-subscribe-view .rss-search-bar {
   padding: 5px 6px 4px;
 }

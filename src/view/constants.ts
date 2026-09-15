@@ -1,29 +1,15 @@
 export const VIEW_TYPE_RSS_SUBSCRIBE = "rss-subscribe-view";
 
-/** A second copy of the list column, docked in the right sidebar. */
+/** The subscription list, docked in the right sidebar. Its only host. */
 export const VIEW_TYPE_RSS_SIDEBAR = "rss-subscribe-sidebar";
 
 export type FilterKind = "all" | "unread" | "starred" | "feed";
-
-export type NarrowPane = "list" | "reader";
 
 /**
  * Settings key for the "Ungrouped" bucket in `collapsedGroups`. A real group
  * name is never empty (`FeedStore.groups()` skips falsy ones), so "" is free.
  */
 export const UNGROUPED_KEY = "";
-
-/** Width the store treats as "never dragged": the CSS default takes over. */
-export const DEFAULT_LIST_WIDTH = 300;
-
-/** Below this the feed titles and their counters start to collide. */
-export const MIN_LIST_WIDTH = 180;
-
-/** The reader never shrinks past this, otherwise the column is unreadable. */
-export const MIN_READER_WIDTH = 300;
-
-/** Widest the list pane may grow, as a share of the whole view. */
-export const MAX_LIST_SHARE = 0.7;
 
 /** Tallest the feed section may grow, as a share of the whole list pane. */
 export const MAX_FEED_SHARE = 0.72;

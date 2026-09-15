@@ -1,12 +1,12 @@
 # RSS Subscribe
 
-Subscribe to RSS and Atom feeds, read them in a focused split view inside Obsidian, and turn any article into a Markdown note in your vault.
+Subscribe to RSS and Atom feeds, read them in a dedicated reader tab inside Obsidian, and turn any article into a Markdown note in your vault.
 
 ## Features
 
 - **Subscriptions** — add feeds by pasting either a feed URL or a site home page; RSS 2.0, Atom and RSS 1.0 (RDF) are supported. Feeds can be sorted into groups.
-- **Split reader** — one view with a subscription and article list on the left and the article body on the right. The layout collapses to a single pane when the view gets narrow.
-- **Dockable list** — the subscription list (toolbar, search, feed tree and article list) can live inside the reader view or in the right sidebar. Either copy drives the same selection, so clicking an article in the sidebar updates the reader tab. Inside the reader view the list can also be folded away with one click from the toolbar, leaving the article full width; the switch stays put so the list is one click away again.
+- **Subscription list in the sidebar** — the search box, the feed tree, the article list and the drag handle between them live in the right sidebar. The list is the only place you pick from, and what it picks is what the reader shows.
+- **Reader tab** — the selected article opens in its own tab in the main area, with the title, source, author and date up top and the article body below. Star, mark read or unread, fetch full text, open in the browser and save as note sit next to the title.
 - **Full text extraction** — when a feed only ships a summary, the article page is fetched and its main content extracted, so you read (and keep) the whole thing.
 - **Markdown export** — save any article as a note. The destination folder, the file name and both the front matter and body templates are configurable, with `{{title}}`, `{{feed}}`, `{{author}}`, `{{published}}`, `{{created}}`, `{{summary}}` and `{{content}}` variables.
 - **Automatic refresh** — feeds are polled in the background at an interval you choose. Set it to 0 to switch automatic refresh off.
@@ -29,31 +29,34 @@ Search for "RSS Subscribe" under **Settings → Community plugins → Browse**.
 
 ## Usage
 
-1. Click the RSS icon in the ribbon, or run **RSS Subscribe: Open RSS reader** from the command palette.
-2. Click the plus button in the toolbar and paste a feed URL. A site home page also works — RSS Subscribe looks for the feed link on the page.
-3. Articles appear in the left column. Selecting one opens it in the reader on the right.
+1. Click the RSS icon in the ribbon. The subscription list opens in the right sidebar.
+2. Add a feed. The empty list offers an **Add feed** button, and **RSS Subscribe: Add feed** in the command palette works from anywhere; with feeds already sorted into groups, right-clicking a group header gives you an **Add feed…** that pre-fills that group. Pasting a site home page works too — RSS Subscribe looks for the feed link on the page.
+3. Articles show up under the three filters at the top of the list. Clicking one opens it in a reader tab in the main area.
 4. Use **Save as note** in the reader to write the article into your vault.
 
-Right-click a feed in the left column for refresh, mark-as-read, edit and delete.
+Right-click a feed in the sidebar for refresh, mark-as-read, edit and delete. The menu behind a group header also carries OPML import and export plus mark-all-read/unread for that group.
+
+The list only ever lives in the sidebar, so there is no position to choose: **RSS Subscribe: Toggle the subscription list sidebar** shows and hides it, and while it is hidden the reader's empty state offers a button that brings it back.
 
 ## Commands
 
 | Command | Description |
 | --- | --- |
-| Open RSS reader | Show the reader view |
+| Open RSS reader | Show the reader tab — empty until an article is picked |
 | Refresh all feeds | Fetch every subscription |
 | Add feed | Open the add-feed dialog |
 | Import OPML file | Import subscriptions from an OPML file |
 | Export OPML file | Write an OPML file to the vault root |
 | Save current article as note | Save the article open in the reader |
 | Mark all articles as read | Clear the unread state everywhere |
-| Toggle the subscription list sidebar | Move the list between the reader view and the right sidebar |
+| Collapse all groups | Fold every group in the feed tree shut |
+| Expand all groups | Unfold every group in the feed tree |
+| Toggle the subscription list sidebar | Show or hide the list in the right sidebar |
 
 ## Settings
 
 | Setting | Description |
 | --- | --- |
-| Subscription list position | Show the list inside the reader view, or dock it in the right sidebar |
 | Automatic refresh interval | Background polling interval in minutes; 0 turns it off |
 | Request timeout | How long to wait for a feed before giving up (5–120 s) |
 | Articles kept per feed | Upper bound on stored articles per feed |
@@ -108,10 +111,9 @@ The plugin works on mobile (`isDesktopOnly: false`). It uses only cross-platform
 
 The layout adapts to a phone rather than merely fitting on it:
 
-- The list and the reader are always stacked into one column, with a back arrow to return to the list. There is no split view and no drag handle to aim at.
-- Long-pressing a subscription opens its menu (refresh, rename, delete), since there is no right-click.
+- The subscription list lives in the right sidebar, which on a phone is a drawer. Tapping the RSS icon in the ribbon opens it; picking an article folds it away so the article is visible right away.
+- Long-pressing a subscription, or a group header, opens its menu (refresh, mark as read, edit, delete, OPML, mark all), since there is no right-click.
 - Touch targets, the search box, and the reader's margins are sized for a thumb and for iOS' minimum input font size.
-- If you move the subscription list into the right sidebar, picking an article folds the drawer away so the article is visible right away.
 
 ## Development
 

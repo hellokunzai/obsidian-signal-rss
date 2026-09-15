@@ -2,7 +2,7 @@ import { PluginSettingTab, Setting } from "obsidian";
 import type { App } from "obsidian";
 import type RssSubscribePlugin from "./main";
 import { t } from "./i18n";
-import type { Feed, ListPosition } from "./types";
+import type { Feed } from "./types";
 import { AddFeedModal } from "./ui/add-feed-modal";
 
 export class RssSubscribeSettingTab extends PluginSettingTab {
@@ -27,23 +27,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
 
   private renderGeneral(containerEl: HTMLElement): void {
     new Setting(containerEl).setName(t("settings.section.general")).setHeading();
-
-    new Setting(containerEl)
-      .setName(t("settings.listPosition.name"))
-      .setDesc(t("settings.listPosition.desc"))
-      .addDropdown((dropdown) =>
-        dropdown
-          // Keep every t() call a literal — the i18n key checker only sees those.
-          .addOption("main", t("settings.listPosition.main"))
-          .addOption("sidebar", t("settings.listPosition.sidebar"))
-          .setValue(this.plugin.settings.listPosition)
-          .onChange(async (value) => {
-            this.plugin.settings.listPosition = value as ListPosition;
-            await this.plugin.saveSettings();
-            // Open or close the sidebar panel so the choice takes effect now.
-            await this.plugin.applyListPosition();
-          })
-      );
 
     new Setting(containerEl)
       .setName(t("settings.refreshInterval.name"))

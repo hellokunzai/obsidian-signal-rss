@@ -10,7 +10,7 @@ import {
   UNGROUPED_KEY,
 } from "./constants";
 import type { FilterKind } from "./constants";
-import { iconButton, relativeTime, textButton } from "./dom";
+import { relativeTime, textButton } from "./dom";
 
 /** How long a finger must rest on a feed row before its menu opens. */
 const LONG_PRESS_MS = 500;
@@ -18,42 +18,15 @@ const LONG_PRESS_MS = 500;
 /** Movement past this many pixels means the user is scrolling, not pressing. */
 const LONG_PRESS_SLOP = 8;
 
-export interface ListPaneOptions {
-  /**
-   * True for the copy that fills a sidebar panel: it stretches to the panel
-   * height instead of holding the fixed width a column of the reader needs.
-   */
-  docked?: boolean;
-  /**
-   * Fired when a click lands inside this pane. The reader view uses it to keep
-   * its narrow (stacked) layout in sync with whichever copy was used.
-   */
-  onLocalIntent?: () => void;
-  /**
-   * The show/hide switch for the list column, drawn at the end of the search
-   * row. Only the reader tab passes this: the sidebar copy *is* the list, so
-   * there is nothing there to fold away.
-   *
-   * `isHidden` is read on every render rather than passed as a value, because
-   * the mode is per-tab and flips without this pane being reconstructed.
-   */
-  listToggle?: {
-    isHidden: () => boolean;
-    onToggle: () => void;
-  };
-}
-
 /**
- * The search box, the subscription tree, the row drag handle and the article
- * list — everything left of the reader. Both hosts (the reader tab and the
- * right sidebar) mount the exact same component so the two can never drift.
+ * The subscription list: search box, subscription tree, row drag handle and
+ * article list. This pane is only ever docked in the right sidebar.
  *
  * All filter/selection state lives on the plugin (`plugin.listState`) and is
- * written through it, so clicking a row in one copy updates the other.
+ * written through it.
  */
 export class ListPane {
   private plugin: RssSubscribePlugin;
-  private options: ListPaneOptions;
   private feedScroll = 0;
   private listScroll = 0;
   private searchHadFocus = false;
@@ -68,9 +41,8 @@ export class ListPane {
   /** The element this pane was last built into, so we can re-clamp on resize. */
   private hostEl: HTMLElement | null = null;
 
-  constructor(plugin: RssSubscribePlugin, options: ListPaneOptions = {}) {
+  constructor(plugin: RssSubscribePlugin) {
     this.plugin = plugin;
-    this.options = options;
   }
 
   /**
@@ -115,7 +87,6 @@ export class ListPane {
     this.clearLongPress();
     this.hostEl = host;
     host.addClass("rss-list-pane");
-    if (this.options.docked) host.addClass("rss-list-pane-docked");
 
     this.renderSearch(host);
     this.renderFeedList(host);
@@ -162,23 +133,6 @@ export class ListPane {
       }, 150);
     });
 
-    // The switch rides at the end of the search row instead of on a toolbar of
-    // its own: one less full-width strip of chrome above the list, and the
-    // control still sits on the row it acts on.
-    const toggle = this.options.listToggle;
-    if (!toggle) return;
-    const hidden = toggle.isHidden();
-    // Keep both t() calls literal — the i18n key checker only sees literals.
-    const label = hidden ? t("view.list.show") : t("view.list.hide");
-    const button = iconButton(
-      bar,
-      hidden ? "panel-left-open" : "panel-left-close",
-      label,
-      () => toggle.onToggle()
-    );
-    button.addClass("rss-list-toggle");
-    // The icon names the action, `aria-pressed` names the current mode.
-    button.setAttribute("aria-pressed", hidden ? "true" : "false");
   }
 
   /* ---------- feed tree ---------- */
@@ -312,7 +266,6 @@ export class ListPane {
     row.createSpan({ cls: "rss-row-label", text: label });
     if (count) row.createSpan({ cls: "rss-row-count", text: count });
     row.addEventListener("click", () => {
-      this.options.onLocalIntent?.();
       this.plugin.setListState({ filterKind: kind, filterFeedId: feedId });
     });
   }
@@ -339,7 +292,6 @@ export class ListPane {
         this.longPressed = false;
         return;
       }
-      this.options.onLocalIntent?.();
       this.plugin.setListState({ filterKind: "feed", filterFeedId: feed.id });
     });
 
@@ -489,7 +441,7 @@ export class ListPane {
       const startY = event.clientY;
       const startHeight = this.measureFeedHeight(pane);
       this.capturePointer(handle, event);
-      this.beginResize(handle, pane, "y");
+      this.beginResize(handle, pane);
       const move = (moveEvent: PointerEvent): void => {
         this.writeFeedHeight(pane, startHeight + (moveEvent.clientY - startY));
       };
@@ -497,7 +449,7 @@ export class ListPane {
         handle.removeEventListener("pointermove", move);
         handle.removeEventListener("pointerup", stop);
         handle.removeEventListener("pointercancel", stop);
-        this.endResize(handle, pane, "y");
+        this.endResize(handle, pane);
         this.commitFeedHeight();
       };
       handle.addEventListener("pointermove", move);
@@ -534,18 +486,18 @@ export class ListPane {
     }
   }
 
-  private beginResize(handle: HTMLElement, pane: HTMLElement, axis: "x" | "y"): void {
+  private beginResize(handle: HTMLElement, pane: HTMLElement): void {
     handle.addClass("is-dragging");
     const root = this.viewRoot(pane);
     root.addClass("rss-resizing");
-    root.addClass(axis === "x" ? "rss-resizing-x" : "rss-resizing-y");
+    root.addClass("rss-resizing-y");
   }
 
-  private endResize(handle: HTMLElement, pane: HTMLElement, axis: "x" | "y"): void {
+  private endResize(handle: HTMLElement, pane: HTMLElement): void {
     handle.removeClass("is-dragging");
     const root = this.viewRoot(pane);
     root.removeClass("rss-resizing");
-    root.removeClass(axis === "x" ? "rss-resizing-x" : "rss-resizing-y");
+    root.removeClass("rss-resizing-y");
   }
 
   private viewRoot(pane: HTMLElement): HTMLElement {

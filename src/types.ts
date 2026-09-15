@@ -1,13 +1,3 @@
-/**
- * Where the subscription list (and its toolbar) is rendered.
- * `main` keeps it inside the reader tab, `sidebar` moves it to a right-hand
- * panel. Exactly one home at a time — a second copy only ever meant two panes
- * to keep in sync.
- */
-export type ListPosition = "main" | "sidebar";
-
-export const LIST_POSITIONS: ListPosition[] = ["main", "sidebar"];
-
 export interface Feed {
   id: string;
   title: string;
@@ -89,12 +79,8 @@ export interface RssSubscribeSettings {
   frontmatterTemplate: string;
   noteBodyTemplate: string;
   openAfterSave: boolean;
-  /** Remembered width of the article list pane, in pixels. 0 = never dragged. */
-  listPaneWidth: number;
   /** Remembered height of the feed section, in pixels. 0 = never dragged. */
   feedPaneHeight: number;
-  /** Where the subscription list lives. */
-  listPosition: ListPosition;
 }
 
 export const SETTINGS_VERSION = 1;
@@ -124,7 +110,5 @@ export const DEFAULT_SETTINGS: RssSubscribeSettings = {
   ].join("\n"),
   noteBodyTemplate: ["{{content}}", "", "---", "", "来源：[{{feed}}]({{link}})"].join("\n"),
   openAfterSave: false,
-  listPaneWidth: 0,
   feedPaneHeight: 0,
-  listPosition: "main",
 };

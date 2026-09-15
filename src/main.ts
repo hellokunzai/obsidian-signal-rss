@@ -2,7 +2,6 @@ import { Menu, Notice, Platform, Plugin } from "obsidian";
 import { t } from "./i18n";
 import {
   DEFAULT_SETTINGS,
-  LIST_POSITIONS,
   SETTINGS_VERSION,
 } from "./types";
 import type {
@@ -44,8 +43,9 @@ interface PersistedData {
 /**
  * Everything the list column shows: which filter is picked, what is typed in
  * the search box and which article is open. It lives on the plugin rather than
- * in a view because the list can be on screen twice at once — inside the reader
- * tab and in the right sidebar — and both copies must agree.
+ * in the sidebar view because the reader tab depends on it too — the sidebar
+ * picks an article, the reader renders it — and because the workspace layout
+ * restores it through `RssSubscribeView.getState`.
  */
 export interface ListState {
   filterKind: "all" | "unread" | "starred" | "feed";
@@ -118,8 +118,12 @@ export default class RssSubscribePlugin extends Plugin {
       (leaf) => new RssSidebarView(leaf, this)
     );
 
+    // The ribbon is the way in, and what it brings up is the subscription list,
+    // not the reader: the reader tab is opened later, by picking an article
+    // (see `selectArticle`). Opening it from here instead would drop the user
+    // on an empty pane with nothing to click and the list nowhere in sight.
     this.ribbonIconEl = this.addRibbonIcon("rss", t("ribbon.tooltip"), () => {
-      void this.activateView();
+      void this.openListSidebar(true);
     });
     this.updateRibbonBadge();
 
@@ -240,20 +244,7 @@ export default class RssSubscribePlugin extends Plugin {
       : [];
     // Pane sizes come from a drag handle, so a corrupted store could hold
     // anything. Clamp on the way in and let the view re-clamp on every render.
-    this.settings.listPaneWidth = sanitizePaneSize(this.settings.listPaneWidth);
     this.settings.feedPaneHeight = sanitizePaneSize(this.settings.feedPaneHeight);
-    // "In both places" is no longer offered — keeping two copies of the list in
-    // sync was the whole cost of that mode and none of its value. Anyone still
-    // holding it keeps the sidebar copy: that is the pane their saved workspace
-    // layout restores, and the reader tab then drops its duplicate on its own.
-    if ((this.settings.listPosition as string) === "both") {
-      this.settings.listPosition = "sidebar";
-    }
-    // A hand-edited data.json could hold anything, and the value drives which
-    // panes get built. Fall back to the default rather than to a broken layout.
-    if (!LIST_POSITIONS.includes(this.settings.listPosition)) {
-      this.settings.listPosition = DEFAULT_SETTINGS.listPosition;
-    }
     const feeds: Feed[] = [];
     if (data && Array.isArray(data.feeds)) {
       for (const raw of data.feeds) {
@@ -347,6 +338,9 @@ export default class RssSubscribePlugin extends Plugin {
    * leaf around, `getLeaf("tab")` hands back the empty tab that is already
    * open rather than stacking a second one next to it — which is also where
    * `showReader` lands when an article is picked and no reader is open.
+   *
+   * Reached from the "open reader" command and from `showReader`; the ribbon
+   * icon opens the list sidebar instead.
    */
   async activateView(): Promise<void> {
     const workspace = this.app.workspace;
@@ -424,8 +418,9 @@ export default class RssSubscribePlugin extends Plugin {
   }
 
   /**
-   * Picking an article is the one action both copies of the list can start, so
-   * it lives here: mark it read once, then let every view re-render.
+   * Picking an article is the one action the list can start and the reader has
+   * to hear about, so it lives here: mark it read once, then let every view
+   * re-render.
    */
   selectArticle(ref: ArticleRef): void {
     this.listState.selectedId = ref.article.id;
@@ -440,10 +435,12 @@ export default class RssSubscribePlugin extends Plugin {
     if (Platform.isMobile && this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_SIDEBAR).length > 0) {
       this.app.workspace.rightSplit.collapse();
     }
-    // The list can be the sidebar's only occupant, and then nothing on screen
-    // renders the reader at all: the pick would land in the shared state with
-    // nobody to show it, which reads as "clicking a row does nothing". The
-    // article has to end up on screen, so bring the reader tab forward.
+    // The list lives in the sidebar and the reader in a main-area tab, so when
+    // nothing has been picked yet there is no view on screen that renders the
+    // reader at all: the pick would land in the shared state with nobody to
+    // show it, which reads as "clicking a row does nothing". This is the
+    // normal way the reader tab comes into being, so the article has to end up
+    // on screen — bring the reader tab forward, opening it if need be.
     void this.showReader();
   }
 
@@ -468,9 +465,14 @@ export default class RssSubscribePlugin extends Plugin {
   /* ---------- list placement ---------- */
 
   /**
-   * Bring the right sidebar copy of the list up (creating it once).
+   * Bring the subscription list up in the right sidebar (creating it once).
+   * This is what the ribbon icon calls, and what the reader's empty state falls
+   * back to when the list is not on screen.
+   *
    * `reveal` is opt-in because on mobile the sidebar is a full-screen drawer:
    * folding the list into it should not yank it open over what you are reading.
+   * An explicit click on the ribbon is the opposite case — there the drawer
+   * *is* the thing being asked for.
    */
   async openListSidebar(reveal = true): Promise<void> {
     // `ensureSideLeaf` looks for an existing leaf of this type before creating
@@ -489,30 +491,21 @@ export default class RssSubscribePlugin extends Plugin {
   }
 
   /**
-   * Reconcile the right sidebar with the saved setting. Called when the setting
-   * changes; never on load, because the workspace may still be restoring its
-   * own layout at that point and we would create a duplicate panel.
+   * True while the subscription list is actually on screen in the sidebar. A
+   * leaf that exists inside a folded split does not count — the list is equally
+   * out of reach either way, and the reader's empty state keys off this to
+   * decide whether it has to offer a way into the list.
    */
-  async applyListPosition(): Promise<void> {
-    if (this.settings.listPosition === "main") {
-      this.closeListSidebar();
-      this.notifyViews();
-      return;
-    }
-    await this.openListSidebar(!Platform.isMobile);
-    if (Platform.isMobile) new Notice(t("notice.listMovedToSidebar"));
+  isListSidebarVisible(): boolean {
+    if (this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_SIDEBAR).length === 0) return false;
+    const right = this.app.workspace.rightSplit;
+    return !right || !right.collapsed;
   }
 
   /**
-   * The command palette entry. It is a *visibility* switch, not a
-   * create/destroy switch: a panel that is merely folded away has to open
-   * again, otherwise pressing the command would delete the list instead of
-   * showing it — which is the normal state on mobile, where folding it into
-   * the drawer never expanded it in the first place.
-   *
-   * Showing it hands the list to the sidebar, hiding it hands the list back to
-   * the reader tab. `listPosition` follows both ways, so it always names where
-   * the list actually is — and there is only ever one copy of it.
+   * Toggle the subscription list in the right sidebar. It is a visibility
+   * switch: if the sidebar is folded, expand it; if the list panel exists, close
+   * it; otherwise create it.
    */
   async toggleListSidebar(): Promise<void> {
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_SIDEBAR);
@@ -520,28 +513,18 @@ export default class RssSubscribePlugin extends Plugin {
 
     if (leaves.length > 0 && right && right.collapsed) {
       right.expand();
-      if (this.settings.listPosition !== "sidebar") {
-        this.settings.listPosition = "sidebar";
-        await this.saveSettings();
-      }
       this.notifyViews();
       return;
     }
 
     if (leaves.length > 0) {
       this.closeListSidebar();
-      // Closing has to leave the list somewhere, and the setting has to stay
-      // truthful, so the list falls back to the reader view.
-      if (this.settings.listPosition !== "main") {
-        this.settings.listPosition = "main";
-        await this.saveSettings();
-      }
+      // The reader's empty state falls back to a button that reopens the list,
+      // so the view has to be told the list just went away.
       this.notifyViews();
       return;
     }
-    // Opening it moves the list out of the reader view and into the sidebar.
-    this.settings.listPosition = "sidebar";
-    await this.saveSettings();
+
     await this.openListSidebar(true);
   }
 

@@ -1,7 +1,7 @@
 import { Platform, setIcon } from "obsidian";
 import { toMoment } from "../core/time";
 
-/** Small DOM helpers shared by the reader view and the sidebar copy of the list. */
+/** Small DOM helpers shared by the list pane and the reader view. */
 
 export function iconButton(
   parent: HTMLElement,

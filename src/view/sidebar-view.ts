@@ -6,9 +6,11 @@ import { VIEW_TYPE_RSS_SIDEBAR } from "./constants";
 import { ListPane } from "./list-pane";
 
 /**
- * A copy of the subscription list docked in the right sidebar. It renders the
- * same `ListPane` as the reader tab, so selection, filters and the search box
- * stay in lockstep with it — see `plugin.listState`.
+ * The subscription list, docked in the right sidebar. This is the only host of
+ * `ListPane` now: the reader tab renders the selected article and nothing else.
+ *
+ * Filter and selection state lives on the plugin (`plugin.listState`), so the
+ * reader tab always renders whatever this pane last picked.
  */
 export class RssSidebarView extends ItemView {
   private pane: ListPane;
@@ -16,7 +18,7 @@ export class RssSidebarView extends ItemView {
 
   constructor(leaf: WorkspaceLeaf, plugin: RssSubscribePlugin) {
     super(leaf);
-    this.pane = new ListPane(plugin, { docked: true });
+    this.pane = new ListPane(plugin);
   }
 
   getViewType(): string {
@@ -53,8 +55,7 @@ export class RssSidebarView extends ItemView {
     container.addClass("rss-subscribe-view");
 
     const shell = container.createDiv({ cls: "rss-shell" });
-    // No toolbar here either — the group menus carry the bulk actions, and this
-    // copy of the list has no switch to fold away.
+    // No toolbar: the bulk actions hang off each group's own menu.
     this.pane.render(shell.createDiv());
   }
 }
