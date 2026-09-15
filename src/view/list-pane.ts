@@ -1,4 +1,4 @@
-import { Notice, Platform, setIcon } from "obsidian";
+import { Platform, setIcon } from "obsidian";
 import type RssSubscribePlugin from "../main";
 import { t } from "../i18n";
 import type { Feed } from "../types";
@@ -18,75 +18,6 @@ const LONG_PRESS_MS = 500;
 /** Movement past this many pixels means the user is scrolling, not pressing. */
 const LONG_PRESS_SLOP = 8;
 
-export interface ListToolbarOptions {
-  /**
-   * The show/hide switch for the list column. Only the reader tab passes this:
-   * the sidebar copy *is* the list, so there is nothing there to fold away.
-   */
-  listToggle?: {
-    hidden: boolean;
-    onToggle: () => void;
-  };
-}
-
-/**
- * The toolbar that belongs to the subscription list. It lives here rather than
- * in the view because the list can be hosted either by the reader tab or by the
- * right sidebar, and both hosts have to offer the same actions.
- */
-export function renderListToolbar(
-  plugin: RssSubscribePlugin,
-  toolbar: HTMLElement,
-  options: ListToolbarOptions = {}
-): void {
-  const toggle = options.listToggle;
-  if (toggle) {
-    // Rendered first, and the toolbar is left-aligned, so the switch lands at
-    // the head of the row with the action cluster right behind it: one glance
-    // covers "what the list is doing" plus "what I can do to it".
-    const group = toolbar.createDiv({ cls: "rss-toolbar-view" });
-    // Keep both t() calls literal — the i18n key checker only sees literals.
-    const label = toggle.hidden ? t("view.toolbar.showList") : t("view.toolbar.hideList");
-    const button = iconButton(
-      group,
-      toggle.hidden ? "panel-left-open" : "panel-left-close",
-      label,
-      () => toggle.onToggle()
-    );
-    button.addClass("rss-list-toggle");
-    // The icon names the action, `aria-pressed` names the current mode.
-    button.setAttribute("aria-pressed", toggle.hidden ? "true" : "false");
-    group.createDiv({ cls: "rss-toolbar-divider" });
-  }
-
-  const actions = toolbar.createDiv({ cls: "rss-toolbar-actions" });
-  iconButton(actions, "check-check", t("view.toolbar.markAllRead"), () => {
-    const refs = plugin.visibleRefs();
-    const changed = plugin.store.markAllRead(refs);
-    if (changed > 0) {
-      void plugin.persistCache();
-      new Notice(t("notice.markedAllRead", { count: String(changed) }));
-    }
-    plugin.notifyViews();
-    plugin.updateRibbonBadge();
-  });
-  iconButton(actions, "refresh-cw", t("view.toolbar.refreshAll"), () => {
-    void plugin.refreshAll(false);
-  });
-  iconButton(actions, "plus", t("view.toolbar.addFeed"), () => {
-    plugin.openAddFeedModal(null);
-  });
-  iconButton(actions, "upload", t("view.toolbar.import"), () => {
-    void plugin.importOpmlFromFile();
-  });
-  iconButton(actions, "download", t("view.toolbar.export"), () => {
-    void plugin.exportOpml();
-  });
-  iconButton(actions, "settings", t("view.toolbar.settings"), () => {
-    plugin.openSettings();
-  });
-}
-
 export interface ListPaneOptions {
   /**
    * True for the copy that fills a sidebar panel: it stretches to the panel
@@ -98,6 +29,18 @@ export interface ListPaneOptions {
    * its narrow (stacked) layout in sync with whichever copy was used.
    */
   onLocalIntent?: () => void;
+  /**
+   * The show/hide switch for the list column, drawn at the end of the search
+   * row. Only the reader tab passes this: the sidebar copy *is* the list, so
+   * there is nothing there to fold away.
+   *
+   * `isHidden` is read on every render rather than passed as a value, because
+   * the mode is per-tab and flips without this pane being reconstructed.
+   */
+  listToggle?: {
+    isHidden: () => boolean;
+    onToggle: () => void;
+  };
 }
 
 /**
@@ -118,9 +61,9 @@ export class ListPane {
   private searchTimer: number | null = null;
   /** Live value while the row handle is being dragged; read back on pointerup. */
   private pendingFeedHeight = 0;
-  /** Pending long-press on a feed row; cancelled when the press becomes a scroll. */
+  /** Pending long-press on a tree row; cancelled when the press becomes a scroll. */
   private longPressTimer: number | null = null;
-  /** Set once a long press fires, so the click trailing it does not also filter. */
+  /** Set once a long press fires, so the click trailing it does not also fire. */
   private longPressed = false;
   /** The element this pane was last built into, so we can re-clamp on resize. */
   private hostEl: HTMLElement | null = null;
@@ -218,6 +161,24 @@ export class ListPane {
         this.plugin.notifyViews();
       }, 150);
     });
+
+    // The switch rides at the end of the search row instead of on a toolbar of
+    // its own: one less full-width strip of chrome above the list, and the
+    // control still sits on the row it acts on.
+    const toggle = this.options.listToggle;
+    if (!toggle) return;
+    const hidden = toggle.isHidden();
+    // Keep both t() calls literal — the i18n key checker only sees literals.
+    const label = hidden ? t("view.list.show") : t("view.list.hide");
+    const button = iconButton(
+      bar,
+      hidden ? "panel-left-open" : "panel-left-close",
+      label,
+      () => toggle.onToggle()
+    );
+    button.addClass("rss-list-toggle");
+    // The icon names the action, `aria-pressed` names the current mode.
+    button.setAttribute("aria-pressed", hidden ? "true" : "false");
   }
 
   /* ---------- feed tree ---------- */
@@ -243,7 +204,7 @@ export class ListPane {
       empty.createDiv({ cls: "rss-empty-title", text: t("view.empty.feeds") });
       empty.createDiv({ cls: "rss-empty-hint", text: t("view.empty.feedsHint") });
       const actions = empty.createDiv({ cls: "rss-empty-actions" });
-      textButton(actions, t("view.toolbar.addFeed"), "cta", () => {
+      textButton(actions, t("view.empty.addFeed"), "cta", () => {
         this.plugin.openAddFeedModal(null);
       });
       return;
@@ -251,6 +212,11 @@ export class ListPane {
 
     const groups = store.groups();
     const ungrouped = store.feeds.filter((feed) => !feed.group);
+    // A hairline between the three fixed filters and the subscription tree.
+    // A real element rather than an `::after`: it lives inside the scrolling
+    // `.rss-feed-section`, so it has to travel with the content, and it is only
+    // drawn when there is a tree to separate (the empty state returns above).
+    section.createDiv({ cls: "rss-tree-divider" });
     for (const group of groups) {
       this.groupSection(
         section,
@@ -273,6 +239,10 @@ export class ListPane {
    * A collapsible group header plus the feed rows it owns. The header is a real
    * `<button>` so it stays keyboard reachable and gets a focus ring; its rows
    * live in a wrapper div, so folding is a single `hidden` flip.
+   *
+   * The header also carries the group's own menu: right-click on a pointer
+   * device, long press on a touch one. `key` doubles as the group value a new
+   * feed is pre-filled with, which is why the ungrouped bucket passes "".
    */
   private groupSection(parent: HTMLElement, key: string, name: string, feeds: Feed[]): void {
     const collapsed = this.plugin.isGroupCollapsed(key);
@@ -298,9 +268,28 @@ export class ListPane {
       if (unread > 0) toggle.createSpan({ cls: "rss-group-count", text: String(unread) });
     }
     toggle.addEventListener("click", () => {
+      // A long press already opened the menu; the click trailing it would fold
+      // the group shut behind the menu the press was asking for.
+      if (this.longPressed) {
+        this.longPressed = false;
+        return;
+      }
       // Folding is persisted state, so the plugin fans the re-render out to
       // every copy of the list.
       this.plugin.toggleGroupCollapsed(key);
+    });
+
+    toggle.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      // Some mobile WebViews do deliver this event on a long press. Whichever
+      // of the two arrives first wins; the other is dropped here.
+      this.longPressed = false;
+      this.clearLongPress();
+      this.plugin.openGroupMenu(key, name, feeds, { x: event.clientX, y: event.clientY });
+    });
+
+    this.attachLongPress(toggle, (x, y) => {
+      this.plugin.openGroupMenu(key, name, feeds, { x, y });
     });
 
     const body = parent.createDiv({ cls: "rss-group-body" });
@@ -363,16 +352,24 @@ export class ListPane {
       this.plugin.openFeedMenu(feed, { x: event.clientX, y: event.clientY });
     });
 
-    this.attachLongPress(row, feed);
+    this.attachLongPress(row, (x, y) => {
+      this.plugin.openFeedMenu(feed, { x, y });
+    });
   }
 
   /**
    * Mobile has no right-click, and its WebView does not reliably turn a long
-   * press into a `contextmenu` event, so the feed menu is armed on a timer
+   * press into a `contextmenu` event, so the row menu is armed on a timer
    * instead. `touch-action` is deliberately left alone: the list still has to
    * scroll, and a press that travels past the slop is cancelled below.
+   *
+   * The callback takes the press coordinates because a touch event carries no
+   * usable ones at fire time; the position has to be captured on `pointerdown`.
    */
-  private attachLongPress(row: HTMLElement, feed: Feed): void {
+  private attachLongPress(
+    row: HTMLElement,
+    onLongPress: (x: number, y: number) => void
+  ): void {
     if (!Platform.isMobile) return;
 
     let originX = 0;
@@ -388,7 +385,7 @@ export class ListPane {
       this.longPressTimer = window.setTimeout(() => {
         this.longPressTimer = null;
         this.longPressed = true;
-        this.plugin.openFeedMenu(feed, { x: originX, y: originY });
+        onLongPress(originX, originY);
       }, LONG_PRESS_MS);
     });
 

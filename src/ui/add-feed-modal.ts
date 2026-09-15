@@ -22,13 +22,23 @@ export class AddFeedModal extends Modal {
   private submitButton: ButtonComponent | null = null;
   private errorEl: HTMLElement | null = null;
 
-  constructor(app: App, plugin: RssSubscribePlugin, existing: Feed | null = null) {
+  /**
+   * `presetGroup` only applies to a *new* feed: it pre-fills the group field
+   * when the modal is opened from that group's own menu. Editing an existing
+   * feed always starts from the group that feed is actually in.
+   */
+  constructor(
+    app: App,
+    plugin: RssSubscribePlugin,
+    existing: Feed | null = null,
+    presetGroup = ""
+  ) {
     super(app);
     this.plugin = plugin;
     this.existing = existing;
     this.urlValue = existing ? existing.url : "";
     this.titleValue = existing ? existing.title : "";
-    this.groupValue = existing ? existing.group : "";
+    this.groupValue = existing ? existing.group : presetGroup;
   }
 
   onOpen(): void {

@@ -13,7 +13,7 @@ import {
 } from "./constants";
 import type { NarrowPane } from "./constants";
 import { absoluteTime, iconButton, openExternal, textButton } from "./dom";
-import { ListPane, renderListToolbar } from "./list-pane";
+import { ListPane } from "./list-pane";
 
 /**
  * The reader tab. Depending on `settings.listPosition` it shows the list column
@@ -51,6 +51,8 @@ export class RssSubscribeView extends ItemView {
       onLocalIntent: () => {
         this.narrowPane = "list";
       },
+      // Only this view gets the switch: the sidebar copy *is* the list.
+      listToggle: { isHidden: () => this.listHidden, onToggle: () => this.toggleList() },
     });
   }
 
@@ -166,15 +168,9 @@ export class RssSubscribeView extends ItemView {
     const shell = container.createDiv({ cls: stacked ? "rss-shell is-narrow" : "rss-shell" });
     if (stacked && this.narrowPane === "reader" && selected) shell.addClass("is-narrow-reader");
 
-    // Rendered whenever the view owns the list, folded away or not: the switch
-    // that brings the column back lives here, so it must not disappear with it.
-    if (ownsList) {
-      const toolbar = shell.createDiv({ cls: "rss-toolbar" });
-      renderListToolbar(this.plugin, toolbar, {
-        listToggle: { hidden: this.listHidden, onToggle: () => this.toggleList() },
-      });
-    }
-
+    // No toolbar: the six bulk actions it used to carry now hang off each
+    // group header, and the list's own switch rides at the end of the search
+    // row inside the pane below.
     const body = shell.createDiv({ cls: "rss-body" });
     const listPaneEl = withList ? body.createDiv() : null;
     // Appended between the two panes, so it lands exactly on their shared edge.
@@ -190,7 +186,7 @@ export class RssSubscribeView extends ItemView {
    * Fold the list column away, or bring it back. On a stacked (narrow) layout
    * only one pane fits, so the switch also has to name the pane being asked
    * for: hiding the list means "I want to read", showing it means "I want to
-   * browse". The toolbar is rebuilt from scratch at the end of every render, so
+   * browse". The pane is rebuilt from scratch at the end of every render, so
    * the switch's icon, label and pressed state always follow this field.
    */
   private toggleList(): void {
@@ -363,7 +359,7 @@ export class RssSubscribeView extends ItemView {
       if (this.listHidden && this.ownsList()) {
         empty.createDiv({ cls: "rss-empty-hint", text: t("view.empty.listHidden") });
         const actions = empty.createDiv({ cls: "rss-empty-actions" });
-        textButton(actions, t("view.toolbar.showList"), "normal", () => this.toggleList());
+        textButton(actions, t("view.list.show"), "normal", () => this.toggleList());
       }
       return;
     }
@@ -371,13 +367,26 @@ export class RssSubscribeView extends ItemView {
     const { article, feed } = ref;
     const header = pane.createDiv({ cls: "rss-reader-header" });
 
-    const back = iconButton(header, "arrow-left", t("view.toolbar.back"), () => {
+    const back = iconButton(header, "arrow-left", t("view.reader.back"), () => {
       this.narrowPane = "list";
       this.render();
     });
     back.addClass("rss-back-button");
 
     const titleRow = header.createDiv({ cls: "rss-reader-titlerow" });
+    // Folded away and something selected: the search row that carries the
+    // switch is gone with the list, so this is the only way back. It costs
+    // nothing while the list is on screen — the button is simply not built.
+    if (this.listHidden && this.ownsList()) {
+      const showList = iconButton(
+        titleRow,
+        "panel-left-open",
+        t("view.list.show"),
+        () => this.toggleList()
+      );
+      showList.addClass("rss-list-toggle");
+      showList.setAttribute("aria-pressed", "true");
+    }
     titleRow.createEl("h2", { cls: "rss-reader-title", text: article.title || article.link });
 
     const actions = header.createDiv({ cls: "rss-reader-actions" });

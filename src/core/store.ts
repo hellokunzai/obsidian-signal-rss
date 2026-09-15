@@ -283,10 +283,19 @@ export class FeedStore {
   }
 
   markAllRead(refs: ArticleRef[]): number {
+    return this.markAll(refs, true);
+  }
+
+  /** The mirror of `markAllRead`: every article in `refs` drops its read flag. */
+  markAllUnread(refs: ArticleRef[]): number {
+    return this.markAll(refs, false);
+  }
+
+  private markAll(refs: ArticleRef[], read: boolean): number {
     let changed = 0;
     for (const ref of refs) {
-      if (ref.article.read) continue;
-      ref.article.read = true;
+      if (ref.article.read === read) continue;
+      ref.article.read = read;
       this.dirty.add(ref.article.feedId);
       changed += 1;
     }

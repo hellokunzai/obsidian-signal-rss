@@ -559,17 +559,116 @@ export default class RssSubscribePlugin extends Plugin {
     return this.selectedRef();
   }
 
-  openAddFeedModal(feed: Feed | null): void {
-    new AddFeedModal(this.app, this, feed).open();
+  /**
+   * `presetGroup` pre-fills the group field when a feed is added from a group's
+   * own menu, so "add to this group" costs no retyping. It is left empty for the
+   * ungrouped bucket: its key is "" and its label is not a real group name.
+   */
+  openAddFeedModal(feed: Feed | null, presetGroup = ""): void {
+    new AddFeedModal(this.app, this, feed, presetGroup).open();
   }
 
-  openSettings(): void {
-    const internal = this.app as unknown as {
-      setting?: { open(): void; openTabById(id: string): void };
-    };
-    if (!internal.setting) return;
-    internal.setting.open();
-    internal.setting.openTabById(this.manifest.id);
+  /** Every article under a set of feeds, for the bulk actions a group menu runs. */
+  private articlesOf(feeds: Feed[]): ArticleRef[] {
+    const out: ArticleRef[] = [];
+    for (const feed of feeds) {
+      for (const article of this.store.articlesFor(feed.id)) out.push({ article, feed });
+    }
+    return out;
+  }
+
+  /** Bulk read/unread across a set of feeds, reported like the other batch jobs. */
+  private markFeeds(feeds: Feed[], read: boolean): void {
+    const refs = this.articlesOf(feeds);
+    const changed = read ? this.store.markAllRead(refs) : this.store.markAllUnread(refs);
+    if (changed > 0) {
+      void this.persistCache();
+      // Keep both t() calls literal — the i18n key checker only sees literals.
+      new Notice(
+        read
+          ? t("notice.markedAllRead", { count: String(changed) })
+          : t("notice.markedAllUnread", { count: String(changed) })
+      );
+    }
+    this.notifyViews();
+    this.updateRibbonBadge();
+  }
+
+  /**
+   * The menu behind a group header. Everything on it is scoped to that group
+   * except the OPML pair: which file to import, and where an export lands, are
+   * decisions a group has no say in.
+   *
+   * Takes a position rather than a mouse event for the same reason the feed
+   * menu does — the desktop opens it from a right-click, the mobile long press
+   * from a touch, and `showAtMouseEvent` has nothing to read off a touch.
+   */
+  openGroupMenu(
+    groupValue: string,
+    displayName: string,
+    feeds: Feed[],
+    position: { x: number; y: number }
+  ): void {
+    const menu = new Menu();
+    // A disabled label item rather than a section title: it names the scope the
+    // entries below it act on, which is the one thing the menu cannot say
+    // otherwise once it is detached from the header it was opened on.
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.group.scope", { name: displayName, count: String(feeds.length) }))
+        .setIsLabel(true)
+    );
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.group.refresh"))
+        .setIcon("refresh-cw")
+        .onClick(() => {
+          void this.refreshFeeds(feeds, false);
+        })
+    );
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.group.addFeed"))
+        .setIcon("plus")
+        .onClick(() => {
+          this.openAddFeedModal(null, groupValue);
+        })
+    );
+    menu.addSeparator();
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.group.importOpml"))
+        .setIcon("upload")
+        .onClick(() => {
+          void this.importOpmlFromFile();
+        })
+    );
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.group.exportOpml"))
+        .setIcon("download")
+        .onClick(() => {
+          void this.exportOpml();
+        })
+    );
+    menu.addSeparator();
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.group.markAllRead"))
+        .setIcon("check-check")
+        .onClick(() => {
+          this.markFeeds(feeds, true);
+        })
+    );
+    menu.addItem((item) =>
+      item
+        .setTitle(t("view.group.markAllUnread"))
+        .setIcon("mail")
+        .onClick(() => {
+          this.markFeeds(feeds, false);
+        })
+    );
+    menu.showAtPosition(position);
   }
 
   /**
@@ -708,8 +807,16 @@ export default class RssSubscribePlugin extends Plugin {
   }
 
   async refreshAll(silent: boolean): Promise<void> {
+    await this.refreshFeeds(this.store.feeds.slice(), silent);
+  }
+
+  /**
+   * Refresh an explicit set of feeds. Split out of `refreshAll` so the group
+   * menu can refresh the group the user pointed at instead of dragging every
+   * subscription into the round: same machinery, narrower scope.
+   */
+  async refreshFeeds(feeds: Feed[], silent: boolean): Promise<void> {
     if (this.refreshing) return;
-    const feeds = this.store.feeds.slice();
     if (feeds.length === 0) {
       if (!silent) new Notice(t("notice.noFeeds"));
       return;

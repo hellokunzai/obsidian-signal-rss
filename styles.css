@@ -18,59 +18,26 @@
   min-height: 0;
 }
 
-/* ---------- toolbar ---------- */
+/* ---------- search row ---------- */
 
-/* Both hosts (reader tab and right sidebar) left-align the action cluster, so
-   the icons start on the list column's left edge and the empty stretch falls to
-   the right. That also visibly attaches the actions to the list they operate on.
-
-   The 8px inset deliberately matches `.rss-search-bar`'s, so the first icon
-   starts on the same vertical line as the search field below it. */
-.rss-subscribe-view .rss-toolbar {
+/* Search lives at the top of the left column, above the feed list. It is a flex
+   row rather than a plain block because the list's show/hide switch rides at
+   its end: the same control that used to own a toolbar row of its own, with no
+   extra strip of chrome above the list. */
+.rss-subscribe-view .rss-search-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  flex: 0 0 auto;
-  padding: 6px 8px 5px;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
-/* Search lives at the top of the left column, above the feed list. */
-.rss-subscribe-view .rss-search-bar {
+  gap: 6px;
   flex: 0 0 auto;
   padding: 8px 8px 6px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .rss-subscribe-view .rss-search {
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
   height: 28px;
-}
-
-.rss-subscribe-view .rss-toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex: 0 0 auto;
-}
-
-/* The list's own switch, landing just left of the action cluster. A separate
-   group rather than a member of `rss-toolbar-actions` because the sidebar copy
-   of the list renders the actions without it. */
-.rss-subscribe-view .rss-toolbar-view {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex: 0 0 auto;
-}
-
-.rss-subscribe-view .rss-toolbar-divider {
-  flex: 0 0 auto;
-  width: 1px;
-  height: 16px;
-  margin: 0 4px;
-  background-color: var(--background-modifier-border);
 }
 
 .rss-subscribe-view .rss-icon-button {
@@ -199,6 +166,16 @@
   min-height: 0;
   overflow-y: auto;
   padding: 8px 6px 6px;
+}
+
+/* Hairline between the three fixed filters and the subscription tree under
+   them. Its 2px side margin plus the section's 6px padding puts the line 8px in
+   from either edge — the same inset the row highlight uses, so the line reads
+   as belonging to the list rather than to the pane. Only the top margin is
+   declared: the group header below already brings its own. */
+.rss-subscribe-view .rss-tree-divider {
+  margin: 6px 2px 0;
+  border-top: 1px solid var(--background-modifier-border);
 }
 
 /* `flex-basis: 0` matters: with `auto` the article list contributes its full
@@ -951,8 +928,11 @@
    layout (see `RssSubscribeView.computeNarrow`). Everything below is about
    making that stacked layout usable with a thumb: real touch targets, a search
    box iOS will not zoom on, and padding that clears the gesture bar. */
-.is-mobile .rss-subscribe-view .rss-toolbar {
-  padding: 4px 6px 3px;
+/* The list switch now shares this row, and its touch target is 38px tall, so
+   the row's own padding is trimmed to keep the strip close to the height the
+   old toolbar row had. */
+.is-mobile .rss-subscribe-view .rss-search-bar {
+  padding: 5px 6px 4px;
 }
 
 /* The 28px box sits below iOS' 16px zoom trigger, so focusing it would scale

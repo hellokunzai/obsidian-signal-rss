@@ -3,7 +3,7 @@ import type { WorkspaceLeaf } from "obsidian";
 import type RssSubscribePlugin from "../main";
 import { t } from "../i18n";
 import { VIEW_TYPE_RSS_SIDEBAR } from "./constants";
-import { ListPane, renderListToolbar } from "./list-pane";
+import { ListPane } from "./list-pane";
 
 /**
  * A copy of the subscription list docked in the right sidebar. It renders the
@@ -11,13 +11,11 @@ import { ListPane, renderListToolbar } from "./list-pane";
  * stay in lockstep with it — see `plugin.listState`.
  */
 export class RssSidebarView extends ItemView {
-  private plugin: RssSubscribePlugin;
   private pane: ListPane;
   private opened = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: RssSubscribePlugin) {
     super(leaf);
-    this.plugin = plugin;
     this.pane = new ListPane(plugin, { docked: true });
   }
 
@@ -55,8 +53,8 @@ export class RssSidebarView extends ItemView {
     container.addClass("rss-subscribe-view");
 
     const shell = container.createDiv({ cls: "rss-shell" });
-    const toolbar = shell.createDiv({ cls: "rss-toolbar" });
-    renderListToolbar(this.plugin, toolbar);
+    // No toolbar here either — the group menus carry the bulk actions, and this
+    // copy of the list has no switch to fold away.
     this.pane.render(shell.createDiv());
   }
 }
