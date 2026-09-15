@@ -602,22 +602,17 @@ export default class RssSubscribePlugin extends Plugin {
    * Takes a position rather than a mouse event for the same reason the feed
    * menu does — the desktop opens it from a right-click, the mobile long press
    * from a touch, and `showAtMouseEvent` has nothing to read off a touch.
+   *
+   * No scope label at the top. The menu opens on the group header it belongs
+   * to, so a line naming that group only repeats what the click already said —
+   * the count it used to carry is on the header row as well.
    */
   openGroupMenu(
     groupValue: string,
-    displayName: string,
     feeds: Feed[],
     position: { x: number; y: number }
   ): void {
     const menu = new Menu();
-    // A disabled label item rather than a section title: it names the scope the
-    // entries below it act on, which is the one thing the menu cannot say
-    // otherwise once it is detached from the header it was opened on.
-    menu.addItem((item) =>
-      item
-        .setTitle(t("view.group.scope", { name: displayName, count: String(feeds.length) }))
-        .setIsLabel(true)
-    );
     menu.addItem((item) =>
       item
         .setTitle(t("view.group.refresh"))

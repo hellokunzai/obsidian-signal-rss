@@ -285,11 +285,11 @@ export class ListPane {
       // of the two arrives first wins; the other is dropped here.
       this.longPressed = false;
       this.clearLongPress();
-      this.plugin.openGroupMenu(key, name, feeds, { x: event.clientX, y: event.clientY });
+      this.plugin.openGroupMenu(key, feeds, { x: event.clientX, y: event.clientY });
     });
 
     this.attachLongPress(toggle, (x, y) => {
-      this.plugin.openGroupMenu(key, name, feeds, { x, y });
+      this.plugin.openGroupMenu(key, feeds, { x, y });
     });
 
     const body = parent.createDiv({ cls: "rss-group-body" });
