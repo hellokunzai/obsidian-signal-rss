@@ -804,7 +804,137 @@
   margin-top: 6px;
 }
 
-/* ---------- settings tab ---------- */
+/* ---------- settings tab bar ---------- */
+
+/* Geometry is taken from the reference design: a 35px pill, 6px radius, 12px
+   inner padding, 7px between tabs, a 17px icon. The one thing the reference is
+   explicit about is that the divider and the first pill start on the *same*
+   vertical line, so the bar declares no horizontal padding of its own — which
+   is also what lines the pills up with the `setting-item` cards underneath.
+
+   Every declaration below is fighting an Obsidian default, and the selectors
+   carry the `.rss-subscribe-settings` prefix (0,2,0) for that reason:
+     - bare `button { height: var(--input-height) }` (0,0,1) would clamp every
+       tab to 30px, so `height` is written out by hand;
+     - `button:not(.clickable-icon)` (0,1,1) paints a grey background and an
+       inset shadow, which the prefix outranks.
+   `.is-active` lands at (0,3,0). */
+.rss-subscribe-settings .rss-settings-tabs {
+  /* The settings page is the scroll container, so without `sticky` the tabs
+     scroll away with the content. The background has to match the container's
+     own (`--background-primary`, per Obsidian's `.vertical-tab-content`) or the
+     rows would show through as they slide underneath. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  padding: 0;
+  background-color: var(--background-primary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.rss-subscribe-settings .rss-settings-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: auto;
+  height: 35px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--font-ui-medium);
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+}
+
+.rss-subscribe-settings .rss-settings-tab svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+}
+
+.rss-subscribe-settings .rss-settings-tab.is-active {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+@media (hover: hover) {
+  .rss-subscribe-settings .rss-settings-tab:not(.is-active):hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+}
+
+/* The bare `button` rule sets `outline: none`, so the ring has to come back. */
+.rss-subscribe-settings .rss-settings-tab:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+/* Breathing room between the divider and the first row of the panel. The
+   reference crop stops right below the divider, so this one is a judgement
+   call rather than a measurement: 16px is the padding a `setting-item` card
+   carries on its own sides, which keeps the gap in the same rhythm. */
+.rss-subscribe-settings .rss-settings-body {
+  padding-top: var(--size-4-4);
+}
+
+/* ---------- settings rows ---------- */
+
+/* A setting row is a flex row by default: name + description on the left, the
+   control on the right. That leaves a multi-line template box about 260px wide
+   — narrow enough that an eight-line frontmatter template wraps and scrolls.
+   These two rows become a column instead: the label keeps its own line and the
+   textarea takes the full width underneath.
+
+   `display` and `flex-direction` are declared rather than inherited. Obsidian
+   1.13 reworked the settings page (it ships a `SettingGroup` class now), so
+   leaning on whatever the default layout happens to be is how this silently
+   stops working after an app update. */
+.rss-subscribe-settings .setting-item.rss-subscribe-setting-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* `width: 100%` on both children is what actually stretches them; the control
+   box would otherwise stay at its content width in a column. */
+.rss-subscribe-settings .rss-subscribe-setting-stacked .setting-item-info,
+.rss-subscribe-settings .rss-subscribe-setting-stacked .setting-item-control {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* The control box right-aligns its contents, which in a column leaves the
+   textarea floating away from the left edge. */
+.rss-subscribe-settings .rss-subscribe-setting-stacked .setting-item-control {
+  justify-content: flex-start;
+}
+
+/* Scoped to the stacked rows on purpose: single-line inputs elsewhere in this
+   tab keep the usual right-aligned control. */
+.rss-subscribe-settings .rss-subscribe-setting-stacked .rss-subscribe-template-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  resize: vertical;
+  line-height: 1.5;
+}
 
 .rss-subscribe-settings .rss-subscribe-template-input {
   width: 100%;

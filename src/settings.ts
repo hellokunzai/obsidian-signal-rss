@@ -1,12 +1,37 @@
-import { PluginSettingTab, Setting } from "obsidian";
+import { PluginSettingTab, Setting, setIcon } from "obsidian";
 import type { App } from "obsidian";
 import type RssSubscribePlugin from "./main";
 import { t } from "./i18n";
 import type { Feed } from "./types";
 import { AddFeedModal } from "./ui/add-feed-modal";
 
+type SettingsTabId = "general" | "feeds" | "notes";
+
+interface SettingsTabDef {
+  id: SettingsTabId;
+  labelKey: string;
+  icon: string;
+}
+
+/* Icon ids are not free-form. Obsidian ships a trimmed Lucide subset, and the
+   two obvious choices are not in it: `settings` (the gear) and `rss` (the
+   broadcast arcs) both fail to resolve, and an unresolved id renders as an
+   empty svg slot. Every id below was checked against the icon registry in
+   obsidian.asar, so these three are known to exist. */
+const SETTINGS_TABS: SettingsTabDef[] = [
+  { id: "general", labelKey: "settings.tab.general", icon: "sliders-horizontal" },
+  { id: "feeds", labelKey: "settings.tab.feeds", icon: "radio-tower" },
+  { id: "notes", labelKey: "settings.tab.notes", icon: "file-text" },
+];
+
+const PANEL_ID = "rss-subscribe-settings-panel";
+
 export class RssSubscribeSettingTab extends PluginSettingTab {
   plugin: RssSubscribePlugin;
+
+  /* Which tab is open. Instance state on purpose: it is a view preference, so it
+     must not be written to data.json, and "reset settings" must not touch it. */
+  private activeTab: SettingsTabId = "general";
 
   constructor(app: App, plugin: RssSubscribePlugin) {
     super(app, plugin);
@@ -18,11 +43,87 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.addClass("rss-subscribe-settings");
 
-    this.renderGeneral(containerEl);
-    this.renderReader(containerEl);
-    this.renderNotes(containerEl);
-    this.renderSubscriptions(containerEl);
-    this.renderAbout(containerEl);
+    this.renderTabBar(containerEl);
+
+    const panel = containerEl.createDiv({ cls: "rss-settings-body" });
+    panel.id = PANEL_ID;
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", this.tabDomId(this.activeTab));
+
+    if (this.activeTab === "feeds") {
+      this.renderSubscriptions(panel);
+    } else if (this.activeTab === "notes") {
+      this.renderNotes(panel);
+    } else {
+      this.renderGeneral(panel);
+      this.renderReader(panel);
+      this.renderAbout(panel);
+    }
+  }
+
+  private tabDomId(id: SettingsTabId): string {
+    return `rss-settings-tab-${id}`;
+  }
+
+  private selectTab(id: SettingsTabId): void {
+    if (id === this.activeTab) {
+      return;
+    }
+    this.activeTab = id;
+    /* A full re-render is the cheapest correct move here: `display()` already
+       knows how to draw a panel, and every control in it reads live plugin
+       state, so there is nothing worth preserving across the swap. */
+    this.display();
+    /* That swap replaced the button that was clicked, which would drop focus to
+       <body> and lose the keyboard user's place. Put it on the tab that is now
+       open instead. */
+    this.containerEl.querySelector<HTMLElement>(`#${this.tabDomId(id)}`)?.focus();
+  }
+
+  private renderTabBar(containerEl: HTMLElement): void {
+    const bar = containerEl.createDiv({ cls: "rss-settings-tabs" });
+    bar.setAttribute("role", "tablist");
+
+    for (const tab of SETTINGS_TABS) {
+      const isActive = tab.id === this.activeTab;
+      const button = bar.createEl("button", {
+        cls: "rss-settings-tab",
+        attr: {
+          type: "button",
+          role: "tab",
+          id: this.tabDomId(tab.id),
+          "aria-controls": PANEL_ID,
+          "aria-selected": String(isActive),
+        },
+      });
+      button.toggleClass("is-active", isActive);
+      /* Roving tabindex: the tablist is one Tab stop, and the arrow keys move
+         between the tabs inside it — which is what a tablist is meant to do. */
+      button.tabIndex = isActive ? 0 : -1;
+      setIcon(button, tab.icon);
+      button.createSpan({ text: t(tab.labelKey) });
+      button.addEventListener("click", () => this.selectTab(tab.id));
+    }
+
+    bar.addEventListener("keydown", (event: KeyboardEvent) => {
+      const ids = SETTINGS_TABS.map((tab) => tab.id);
+      const current = ids.indexOf(this.activeTab);
+      let next = current;
+      if (event.key === "ArrowLeft") {
+        next = (current - 1 + ids.length) % ids.length;
+      } else if (event.key === "ArrowRight") {
+        next = (current + 1) % ids.length;
+      } else if (event.key === "Home") {
+        next = 0;
+      } else if (event.key === "End") {
+        next = ids.length - 1;
+      } else {
+        return;
+      }
+      /* Arrow keys would otherwise scroll the settings page sideways. */
+      event.preventDefault();
+      this.selectTab(ids[next]);
+    });
   }
 
   private renderGeneral(containerEl: HTMLElement): void {
@@ -142,7 +243,15 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   }
 
   private renderNotes(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName(t("settings.section.notes")).setHeading();
+    new Setting(containerEl)
+      .setName(t("settings.openAfterSave.name"))
+      .setDesc(t("settings.openAfterSave.desc"))
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.openAfterSave).onChange(async (value) => {
+          this.plugin.settings.openAfterSave = value;
+          await this.plugin.saveSettings();
+        })
+      );
 
     new Setting(containerEl)
       .setName(t("settings.noteFolder.name"))
@@ -167,6 +276,7 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName(t("settings.frontmatter.name"))
       .setDesc(t("settings.frontmatter.desc"))
+      .setClass("rss-subscribe-setting-stacked")
       .addTextArea((area) => {
         area.inputEl.rows = 8;
         area.inputEl.addClass("rss-subscribe-template-input");
@@ -179,6 +289,7 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName(t("settings.noteBody.name"))
       .setDesc(t("settings.noteBody.desc"))
+      .setClass("rss-subscribe-setting-stacked")
       .addTextArea((area) => {
         area.inputEl.rows = 6;
         area.inputEl.addClass("rss-subscribe-template-input");
@@ -187,23 +298,13 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
-
-    new Setting(containerEl)
-      .setName(t("settings.openAfterSave.name"))
-      .setDesc(t("settings.openAfterSave.desc"))
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.openAfterSave).onChange(async (value) => {
-          this.plugin.settings.openAfterSave = value;
-          await this.plugin.saveSettings();
-        })
-      );
   }
 
   private renderSubscriptions(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName(t("settings.section.feeds")).setHeading();
-
+    /* The tab already says "subscriptions", so this row leads with the count
+       instead of repeating the word as a section heading. */
     new Setting(containerEl)
-      .setDesc(t("settings.feeds.count", { count: String(this.plugin.store.feeds.length) }))
+      .setName(t("settings.feeds.count", { count: String(this.plugin.store.feeds.length) }))
       .addButton((button) =>
         button.setButtonText(t("settings.button.import")).onClick(() => {
           void this.plugin.importOpmlFromFile();
@@ -261,9 +362,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName(
       t("settings.about.version", { version: this.plugin.manifest.version })
     );
-
-    containerEl.createEl("p", { text: t("settings.about.network") });
-    containerEl.createEl("p", { text: t("settings.about.security") });
 
     new Setting(containerEl)
       .setName(t("settings.reset.name"))

@@ -121,10 +121,11 @@ const en: Dict = {
   "modal.groupName.save": "Save",
   "modal.groupName.cancel": "Cancel",
 
+  "settings.tab.general": "Basic settings",
+  "settings.tab.feeds": "Subscriptions",
+  "settings.tab.notes": "Note export",
   "settings.section.general": "General",
   "settings.section.reader": "Reader",
-  "settings.section.notes": "Note export",
-  "settings.section.feeds": "Subscriptions",
   "settings.section.about": "About",
   "settings.refreshInterval.name": "Automatic refresh interval",
   "settings.refreshInterval.desc":
@@ -166,10 +167,6 @@ const en: Dict = {
   "settings.button.import": "Import OPML",
   "settings.button.export": "Export OPML",
   "settings.about.version": "Version {{version}}",
-  "settings.about.network":
-    "This plugin only requests the feed URLs you subscribe to. There is no account, no telemetry and no third-party service.",
-  "settings.about.security":
-    "Feed content is stripped down to a small set of safe tags before it is displayed or saved. Code fences coming from a feed are neutralised so a feed cannot execute plugins inside your vault.",
   "settings.reset.name": "Reset settings",
   "settings.reset.desc": "Restore every option on this page to its default value. Subscriptions are kept.",
   "settings.reset.button": "Reset",
@@ -309,10 +306,11 @@ const zhCn: Dict = {
   "modal.groupName.save": "保存",
   "modal.groupName.cancel": "取消",
 
+  "settings.tab.general": "基础配置",
+  "settings.tab.feeds": "订阅源",
+  "settings.tab.notes": "笔记导出",
   "settings.section.general": "常规",
   "settings.section.reader": "阅读",
-  "settings.section.notes": "笔记导出",
-  "settings.section.feeds": "订阅源",
   "settings.section.about": "关于",
   "settings.refreshInterval.name": "自动刷新间隔",
   "settings.refreshInterval.desc": "后台拉取订阅源的频率。设为 0 表示关闭自动刷新。",
@@ -350,10 +348,6 @@ const zhCn: Dict = {
   "settings.button.import": "导入 OPML",
   "settings.button.export": "导出 OPML",
   "settings.about.version": "版本 {{version}}",
-  "settings.about.network":
-    "本插件只会请求你自己订阅的那些 RSS 地址。没有账号、没有遥测、也不经过任何第三方服务。",
-  "settings.about.security":
-    "来自订阅源的内容会先被裁剪到一小份安全标签白名单，才会显示或保存。订阅源里的代码块会被中和，避免订阅源在你的库里执行插件代码。",
   "settings.reset.name": "恢复默认设置",
   "settings.reset.desc": "把本页所有选项恢复为默认值，订阅源列表会保留。",
   "settings.reset.button": "恢复",
