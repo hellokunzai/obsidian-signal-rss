@@ -342,6 +342,12 @@ export default class RssSubscribePlugin extends Plugin {
     );
   }
 
+  /**
+   * Open the reader in the main area and bring it to the front. With no reader
+   * leaf around, `getLeaf("tab")` hands back the empty tab that is already
+   * open rather than stacking a second one next to it — which is also where
+   * `showReader` lands when an article is picked and no reader is open.
+   */
   async activateView(): Promise<void> {
     const workspace = this.app.workspace;
     let leaf = workspace.getLeavesOfType(VIEW_TYPE_RSS_SUBSCRIBE)[0];
@@ -434,6 +440,29 @@ export default class RssSubscribePlugin extends Plugin {
     if (Platform.isMobile && this.app.workspace.getLeavesOfType(VIEW_TYPE_RSS_SIDEBAR).length > 0) {
       this.app.workspace.rightSplit.collapse();
     }
+    // The list can be the sidebar's only occupant, and then nothing on screen
+    // renders the reader at all: the pick would land in the shared state with
+    // nobody to show it, which reads as "clicking a row does nothing". The
+    // article has to end up on screen, so bring the reader tab forward.
+    void this.showReader();
+  }
+
+  /**
+   * Put the reader in front of the user, opening its tab when there is none.
+   *
+   * Returns early when it is already the tab being looked at: revealing a leaf
+   * also moves keyboard focus, and doing that on every pick would pull the
+   * caret out of the sidebar's search box while the reader sits right there
+   * updating itself.
+   */
+  private async showReader(): Promise<void> {
+    const workspace = this.app.workspace;
+    const leaf = workspace.getLeavesOfType(VIEW_TYPE_RSS_SUBSCRIBE)[0];
+    // Ask `rootSplit` specifically. While the user works in a sidebar leaf the
+    // workspace's own active leaf is the list, so it cannot answer "is the
+    // reader on screen?" — this can.
+    if (leaf && workspace.getMostRecentLeaf(workspace.rootSplit) === leaf) return;
+    await this.activateView();
   }
 
   /* ---------- list placement ---------- */
