@@ -18,8 +18,13 @@ const MAX_ITEMS_PER_FETCH = 300;
  * whole vault into the cache folder.
  */
 export function cacheFolderPath(value: unknown): string {
+  // data.json is hand-editable, so this can arrive as anything at all. Only a
+  // string (or a number) names a folder; stringifying an object would just give
+  // "[object Object]" and create a folder by that name, so everything else
+  // falls back to the default.
+  const raw = typeof value === "string" ? value : typeof value === "number" ? String(value) : "";
   const parts: string[] = [];
-  for (const chunk of String(value ?? "").split(/[\\/]+/)) {
+  for (const chunk of raw.split(/[\\/]+/)) {
     const part = chunk.trim();
     if (!part || part === ".") continue;
     if (part === "..") parts.pop();

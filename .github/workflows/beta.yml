@@ -1,0 +1,68 @@
+name: Beta (BRAT)
+
+# commit message 里带 [beta] 发预发布、带 [rc] 发候选版并清理本轮 beta；普通 commit 不触发。
+# 预发布版本用 BRAT 插件安装测试：https://github.com/TfTHacker/obsidian42-brat
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  beta:
+    if: contains(github.event.head_commit.message || '', '[beta]') || contains(github.event.head_commit.message || '', '[rc]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Resolve prerelease tag
+        id: tag
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          BASE=$(node -p "require('./manifest.json').version")
+          if printf '%s' "${MESSAGE}" | grep -q '\[rc\]'; then
+            CHANNEL="rc"
+          else
+            CHANNEL="beta"
+          fi
+          echo "tag=${BASE}-${CHANNEL}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "channel=${CHANNEL}" >> "$GITHUB_OUTPUT"
+
+      - name: Clean up previous beta prereleases
+        if: steps.tag.outputs.channel == 'rc'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease) | select(.tagName | contains("-beta.")) | .tagName' \
+          | while read -r tag; do
+              [ -n "${tag}" ] && gh release delete "${tag}" --yes --cleanup-tag || true
+            done
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          gh release create "${TAG}" main.js manifest.json styles.css \
+            --title "${TAG}" --prerelease --generate-notes

@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "要发布的版本号，须与 manifest.json 一致（不带 v 前缀）"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # --generate-notes 需要完整提交历史
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Resolve version
+        id: version
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            VERSION="${DISPATCH_VERSION}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${VERSION#v}" # 容错：手滑带了 v 前缀也剥掉
+          if ! printf '%s' "${VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::版本号 \"${VERSION}\" 不是 x.y.z 格式（tag 不加 v 前缀）"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check version consistency
+        run: node .github/scripts/check-version.mjs --tag "${{ steps.version.outputs.version }}"
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Verify release assets
+        run: |
+          for f in main.js manifest.json styles.css; do
+            if [ ! -f "$f" ]; then
+              echo "::error::缺少发布资产 $f"
+              exit 1
+            fi
+          done
+          if [ ! -s main.js ]; then
+            echo "::error::main.js 为空，构建未产出有效产物"
+            exit 1
+          fi
+          ls -lh main.js manifest.json styles.css
+
+      - name: Create tag
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ "$(git tag -l "${VERSION}")" = "${VERSION}" ]; then
+            echo "tag ${VERSION} 已存在，跳过创建"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "${VERSION}"
+            git push origin "${VERSION}"
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # 不要加 --draft：草稿状态的市场不会认；重跑时改为覆盖资产
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            echo "Release ${VERSION} 已存在，覆盖发布资产"
+            gh release upload "${VERSION}" main.js manifest.json styles.css --clobber
+          else
+            gh release create "${VERSION}" main.js manifest.json styles.css \
+              --title "${VERSION}" --generate-notes
+          fi
+          gh release view "${VERSION}" --json tagName,isDraft,isPrerelease,publishedAt

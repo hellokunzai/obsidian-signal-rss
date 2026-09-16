@@ -128,6 +128,36 @@ npm run build   # type check + production bundle
 
 Copy `main.js`, `manifest.json` and `styles.css` into a test vault's `.obsidian/plugins/signal-rss/` to try a build.
 
+### Checks
+
+`manifest.json`, `package.json` and `versions.json` must carry the same version before anything ships:
+
+```bash
+node .github/scripts/check-version.mjs          # version consistency + manifest rules
+node .github/scripts/check-version.mjs --tag X  # also assert a tag matches the manifest
+```
+
+CI runs this plus a type check, a production build and a scan of `main.js` for the dynamic-execution APIs Obsidian's review rejects.
+
+### Releases
+
+Releases are driven by GitHub Actions and the built assets are attached by CI, since `main.js` is not tracked:
+
+| Workflow | Trigger | Result |
+| --- | --- | --- |
+| `ci.yml` | push to `main`, any pull request | type check, build, security scan, asset check |
+| `version-check.yml` | push, tags, pull requests | version and manifest consistency |
+| `release.yml` | pushing a tag, or a manual run | GitHub release with `main.js`, `manifest.json`, `styles.css` |
+| `beta.yml` | commit on `main` containing `[beta]` or `[rc]` | pre-release tagged `<version>-beta.N` for [BRAT](https://github.com/TfTHacker/obsidian42-brat) |
+
+Bump the version in all three files, commit, then push a tag without a `v` prefix:
+
+```bash
+git tag 0.9.0 && git push origin 0.9.0
+```
+
+The same release can be cut from the Actions tab instead, by running **Release** and passing the version — the workflow creates the tag itself. For testing before a release, put `[beta]` in a commit message on `main` and install the resulting pre-release through BRAT.
+
 ## License
 
 MIT

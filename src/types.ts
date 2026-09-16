@@ -114,7 +114,7 @@ export const SETTINGS_VERSION = 1;
  * out of the file explorer and out of Obsidian's index — it is machine state,
  * not notes. Kept next to `DEFAULT_SETTINGS` because it *is* a default value.
  */
-export const DEFAULT_CACHE_FOLDER = ".rss-subscribe";
+export const DEFAULT_CACHE_FOLDER = ".signal-rss";
 
 export const DEFAULT_SETTINGS: RssSubscribeSettings = {
   version: SETTINGS_VERSION,

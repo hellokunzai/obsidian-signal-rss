@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: node node_modules/typescript/bin/tsc -noEmit -skipLibCheck
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Security scan
+        run: |
+          # Obsidian 审核红线：动态执行与 HTML 字符串注入
+          if grep -nE 'createContextualFragment|new Function\(|(^|[^a-zA-Z_.$])eval\(' main.js; then
+            echo "::error::main.js 命中被禁用的动态执行 API，详见上方行号"
+            exit 1
+          fi
+          echo "安全扫描通过"
+
+      - name: Verify build output
+        run: |
+          for f in main.js manifest.json styles.css; do
+            if [ ! -f "$f" ]; then
+              echo "::error::缺少构建产物 $f"
+              exit 1
+            fi
+          done
+          if [ ! -s main.js ]; then
+            echo "::error::main.js 为空"
+            exit 1
+          fi
+          ls -lh main.js manifest.json styles.css
