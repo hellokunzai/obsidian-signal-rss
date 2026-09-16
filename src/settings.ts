@@ -70,6 +70,7 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   private feedRowsEl: HTMLElement | null = null;
   private feedEmptyEl: HTMLElement | null = null;
   private feedSearchBoxEl: HTMLElement | null = null;
+  private feedSearchInputEl: HTMLInputElement | null = null;
 
   /* The cache folder field, and the timer that settles it. Both belong to the
      tab instance rather than to a render, because `display()` throws the field
@@ -476,43 +477,45 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   /* ---------- subscriptions: search box ---------- */
 
   private renderFeedSearch(containerEl: HTMLElement): void {
-    const box = containerEl.createDiv({ cls: "rss-feed-search" });
-    const text = box.createDiv({ cls: "rss-feed-search-text" });
-    text.createDiv({ cls: "rss-feed-search-name", text: t("settings.feeds.search.name") });
-    text.createDiv({ cls: "rss-feed-search-desc", text: t("settings.feeds.search.desc") });
+    /* Use a stock Obsidian setting row for the search filter. This gives the
+       input the app's default text-field styling (border, background, shadow)
+       and keeps it visually consistent with the other rows in this panel. */
+    const setting = new Setting(containerEl)
+      .setName(t("settings.feeds.search.name"))
+      .setDesc(t("settings.feeds.search.desc"))
+      .setClass("rss-feed-search")
+      .addText((text) => {
+        text.setPlaceholder(t("settings.feeds.search.placeholder"));
+        this.feedSearchInputEl = text.inputEl;
+        this.feedSearchInputEl.value = this.feedQuery;
+        this.feedSearchInputEl.setAttribute("aria-label", t("settings.feeds.search.name"));
+        this.feedSearchInputEl.setAttribute("autocomplete", "off");
+        this.feedSearchInputEl.setAttribute("spellcheck", "false");
+        this.feedSearchInputEl.addEventListener("input", () => {
+          this.feedQuery = this.feedSearchInputEl!.value;
+          /* Only the rows are repainted, never the box itself: rebuilding the
+             input on every keystroke would drop the caret. */
+          this.syncFeedSearchState();
+          this.renderFeedRows();
+        });
+      })
+      .addExtraButton((button) => {
+        button
+          .setIcon("x")
+          .setTooltip(t("settings.feeds.search.clear"))
+          .onClick(() => {
+            this.feedQuery = "";
+            if (this.feedSearchInputEl) {
+              this.feedSearchInputEl.value = "";
+              this.feedSearchInputEl.focus();
+            }
+            this.syncFeedSearchState();
+            this.renderFeedRows();
+          });
+        button.extraSettingsEl.addClass("rss-feed-search-clear");
+      });
 
-    const field = box.createDiv({ cls: "rss-feed-search-field" });
-    const input = field.createEl("input", {
-      type: "text",
-      cls: "rss-feed-search-input",
-      placeholder: t("settings.feeds.search.placeholder"),
-    });
-    input.value = this.feedQuery;
-    input.setAttribute("aria-label", t("settings.feeds.search.name"));
-    input.setAttribute("autocomplete", "off");
-    input.setAttribute("spellcheck", "false");
-    input.addEventListener("input", () => {
-      this.feedQuery = input.value;
-      /* Only the rows are repainted, never the box itself: rebuilding the input
-         on every keystroke would drop the caret. */
-      this.syncFeedSearchState();
-      this.renderFeedRows();
-    });
-
-    const clear = field.createEl("button", { cls: "rss-feed-search-clear" });
-    clear.setAttribute("type", "button");
-    clear.setAttribute("aria-label", t("settings.feeds.search.clear"));
-    clear.setAttribute("data-tooltip-position", "bottom");
-    setIcon(clear, "x");
-    clear.addEventListener("click", () => {
-      this.feedQuery = "";
-      input.value = "";
-      input.focus();
-      this.syncFeedSearchState();
-      this.renderFeedRows();
-    });
-
-    this.feedSearchBoxEl = box;
+    this.feedSearchBoxEl = setting.settingEl;
     this.syncFeedSearchState();
   }
 
