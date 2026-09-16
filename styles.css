@@ -615,24 +615,10 @@
   line-height: 1.35;
 }
 
-.rss-subscribe-view .rss-reader-actions {
-  display: flex;
-  align-items: center;
-  gap: 3px;
+.rss-subscribe-view .rss-reader-more {
   flex: 0 0 auto;
-}
-
-.rss-subscribe-view .rss-reader-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-}
-
-.rss-subscribe-view .rss-saved-hint {
-  color: var(--text-accent);
+  margin-left: 4px;
+  height: var(--clickable-icon-height, 24px);
 }
 
 .rss-subscribe-view .rss-reader-body {
@@ -1320,16 +1306,15 @@
   padding: 10px 14px 8px;
 }
 
-/* A title plus five actions do not fit across a phone: the headline takes its
-   own row and the actions move under it, instead of squeezing the title down
-   to a couple of characters. */
+/* On a phone the title keeps its own row; the single "more" trigger sits to its
+   right and only opens the action menu when tapped, so the headline is never
+   squeezed down to a couple of characters. */
 .is-mobile .rss-subscribe-view .rss-reader-titlerow {
   flex-wrap: wrap;
 }
 
-.is-mobile .rss-subscribe-view .rss-reader-title,
-.is-mobile .rss-subscribe-view .rss-reader-actions {
-  flex: 1 1 100%;
+.is-mobile .rss-subscribe-view .rss-reader-title {
+  flex: 1 1 auto;
 }
 
 .is-mobile .rss-subscribe-view .rss-reader-body {

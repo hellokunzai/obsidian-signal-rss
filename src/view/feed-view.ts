@@ -1,11 +1,11 @@
-import { ItemView, Notice } from "obsidian";
+import { ItemView, Menu, Notice, setIcon } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import type RssSubscribePlugin from "../main";
 import { t } from "../i18n";
 import type { ArticleRef } from "../core/store";
 import { insertSafeHtml } from "../core/sanitize";
 import { VIEW_TYPE_RSS_SUBSCRIBE } from "./constants";
-import { absoluteTime, iconButton, openExternal, textButton } from "./dom";
+import { openExternal, textButton } from "./dom";
 
 /**
  * The reader tab. The subscription list lives in the right sidebar; this view
@@ -20,6 +20,8 @@ export class RssSubscribeView extends ItemView {
   private pendingFulltext = "";
   /** Selection as of the last render, so a pick from the sidebar can be spotted. */
   private renderedSelectedId = "";
+  /** Title shown on the tab and view header; reflects the picked article. */
+  private displayTitle = t("view.title");
 
   constructor(leaf: WorkspaceLeaf, plugin: RssSubscribePlugin) {
     super(leaf);
@@ -31,7 +33,7 @@ export class RssSubscribeView extends ItemView {
   }
 
   getDisplayText(): string {
-    return t("view.title");
+    return this.displayTitle;
   }
 
   getIcon(): string {
@@ -133,51 +135,25 @@ export class RssSubscribeView extends ItemView {
       return;
     }
 
-    const { article, feed } = ref;
-    const header = pane.createDiv({ cls: "rss-reader-header" });
+    const { article } = ref;
+    this.updateDisplayTitle(article.title || article.link || t("view.title"));
 
+    const header = pane.createDiv({ cls: "rss-reader-header" });
     const titleRow = header.createDiv({ cls: "rss-reader-titlerow" });
     titleRow.createEl("h2", { cls: "rss-reader-title", text: article.title || article.link });
 
-    const actions = header.createDiv({ cls: "rss-reader-actions" });
-    iconButton(actions, article.starred ? "star-off" : "star", article.starred ? t("view.action.unstar") : t("view.action.star"), () => {
-      this.plugin.store.update(feed.id, article.id, { starred: !article.starred });
-      this.plugin.store.markDirty(feed.id);
-      void this.plugin.persistCache();
-      this.plugin.notifyViews();
-      this.plugin.updateRibbonBadge();
+    // All per-article actions now live behind a single "more" trigger, so the
+    // header stays uncluttered. The menu is an Obsidian Menu (see openReaderMenu).
+    const more = titleRow.createEl("button", {
+      cls: "clickable-icon rss-reader-more",
+      attr: { "aria-label": t("view.action.more"), title: t("view.action.more") },
     });
-    iconButton(actions, article.read ? "mail" : "mail-open", article.read ? t("view.action.markUnread") : t("view.action.markRead"), () => {
-      this.plugin.store.update(feed.id, article.id, { read: !article.read });
-      this.plugin.store.markDirty(feed.id);
-      void this.plugin.persistCache();
-      this.plugin.notifyViews();
-      this.plugin.updateRibbonBadge();
+    setIcon(more, "more-vertical");
+    more.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+      this.openReaderMenu(ev, ref);
     });
-    iconButton(actions, "download", t("view.action.fetchFulltext"), () => {
-      void this.forceFulltext(ref);
-    });
-    iconButton(actions, "external-link", t("view.action.openExternal"), () => {
-      openExternal(article.link);
-    });
-    textButton(actions, t("view.action.save"), "cta", () => {
-      void this.plugin.saveArticle(ref);
-    });
-
-    const meta = header.createDiv({ cls: "rss-reader-meta" });
-    meta.createSpan({ text: feed.title || feed.url });
-    if (article.author) {
-      meta.createSpan({ cls: "rss-dot-sep", text: "·" });
-      meta.createSpan({ text: t("view.meta.author", { author: article.author }) });
-    }
-    if (article.publishedAt) {
-      meta.createSpan({ cls: "rss-dot-sep", text: "·" });
-      meta.createSpan({ text: absoluteTime(article.publishedAt) });
-    }
-    if (article.savedPath) {
-      meta.createSpan({ cls: "rss-dot-sep", text: "·" });
-      meta.createSpan({ cls: "rss-saved-hint", text: t("view.meta.saved", { path: article.savedPath }) });
-    }
 
     const body = pane.createDiv({ cls: "rss-reader-body" });
     if (this.pendingFulltext === article.id) {
@@ -202,6 +178,85 @@ export class RssSubscribeView extends ItemView {
         text: t("view.status.filtered", { count: String(hidden) }),
       });
     }
+  }
+
+  /**
+   * Reflect the picked article in the tab label and the centered view header.
+   * Obsidian only reads getDisplayText() once when the leaf is built, so we push
+   * the change to both DOM nodes directly. The runtime fields exist on
+   * WorkspaceLeaf but are not in the type defs, hence the narrow cast.
+   */
+  private updateDisplayTitle(title: string): void {
+    if (title === this.displayTitle) return;
+    this.displayTitle = title;
+    const leaf = this.leaf as unknown as {
+      tabHeaderInnerTitleEl?: HTMLElement;
+      viewHeaderTitleEl?: HTMLElement;
+    };
+    if (leaf.tabHeaderInnerTitleEl) leaf.tabHeaderInnerTitleEl.textContent = title;
+    if (leaf.viewHeaderTitleEl) leaf.viewHeaderTitleEl.textContent = title;
+  }
+
+  private openReaderMenu(ev: MouseEvent, ref: ArticleRef): void {
+    const { article, feed } = ref;
+    const menu = new Menu();
+
+    menu.addItem((item) => {
+      item
+        .setTitle(article.starred ? t("view.action.unstar") : t("view.action.star"))
+        .setIcon(article.starred ? "star-off" : "star")
+        .onClick(() => {
+          this.plugin.store.update(feed.id, article.id, { starred: !article.starred });
+          this.plugin.store.markDirty(feed.id);
+          void this.plugin.persistCache();
+          this.plugin.notifyViews();
+          this.plugin.updateRibbonBadge();
+        });
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle(article.read ? t("view.action.markUnread") : t("view.action.markRead"))
+        .setIcon(article.read ? "mail" : "mail-open")
+        .onClick(() => {
+          this.plugin.store.update(feed.id, article.id, { read: !article.read });
+          this.plugin.store.markDirty(feed.id);
+          void this.plugin.persistCache();
+          this.plugin.notifyViews();
+          this.plugin.updateRibbonBadge();
+        });
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle(t("view.action.fetchFulltext"))
+        .setIcon("download")
+        .onClick(() => void this.forceFulltext(ref));
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle(t("view.action.openExternal"))
+        .setIcon("external-link")
+        .onClick(() => openExternal(article.link));
+    });
+
+    menu.addSeparator();
+
+    menu.addItem((item) => {
+      const mi = item.setTitle(t("view.action.save")).setIcon("file-plus-2");
+      // Echo the "already saved" hint that used to live in the removed meta row,
+      // so the user can still see where the note went. setSubtitle exists on the
+      // runtime MenuItem (Obsidian >=1.4) but is missing from the local typings.
+      if (article.savedPath) {
+        (mi as unknown as { setSubtitle?: (s: string) => void }).setSubtitle?.(
+          t("view.meta.saved", { path: article.savedPath })
+        );
+      }
+      mi.onClick(() => void this.plugin.saveArticle(ref));
+    });
+
+    menu.showAtMouseEvent(ev);
   }
 
   private decorateContent(content: HTMLElement): void {
