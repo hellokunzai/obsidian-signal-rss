@@ -1,7 +1,7 @@
 {
   "id": "rss-subscribe",
   "name": "RSS Subscribe",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "minAppVersion": "1.7.2",
   "description": "Subscribe to RSS and Atom feeds, read articles in a dedicated reader tab, and save any article to your vault as a Markdown note.",
   "author": "hellokunzai",

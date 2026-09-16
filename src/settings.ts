@@ -68,7 +68,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
      because a slow refresh can land after the user has switched tabs. */
   private feedTableEl: HTMLElement | null = null;
   private feedRowsEl: HTMLElement | null = null;
-  private feedCountEl: HTMLElement | null = null;
   private feedEmptyEl: HTMLElement | null = null;
   private feedSearchBoxEl: HTMLElement | null = null;
 
@@ -103,7 +102,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
       this.renderAbout(panel);
     } else {
       this.renderGeneral(panel);
-      this.renderReader(panel);
     }
   }
 
@@ -187,8 +185,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   }
 
   private renderGeneral(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName(t("settings.section.general")).setHeading();
-
     new Setting(containerEl)
       .setName(t("settings.refreshInterval.name"))
       .setDesc(t("settings.refreshInterval.desc"))
@@ -356,38 +352,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     }
   }
 
-  private renderReader(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName(t("settings.section.reader")).setHeading();
-
-    new Setting(containerEl)
-      .setName(t("settings.fontSize.name"))
-      .setDesc(t("settings.fontSize.desc"))
-      .addSlider((slider) =>
-        slider
-          .setLimits(12, 24, 1)
-          .setValue(this.plugin.settings.readerFontSize)
-          .onChange(async (value) => {
-            this.plugin.settings.readerFontSize = value;
-            await this.plugin.saveSettings();
-            this.plugin.notifyViews();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName(t("settings.lineHeight.name"))
-      .setDesc(t("settings.lineHeight.desc"))
-      .addSlider((slider) =>
-        slider
-          .setLimits(1.2, 2.2, 0.05)
-          .setValue(this.plugin.settings.readerLineHeight)
-          .onChange(async (value) => {
-            this.plugin.settings.readerLineHeight = value;
-            await this.plugin.saveSettings();
-            this.plugin.notifyViews();
-          })
-      );
-  }
-
   private renderNotes(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName(t("settings.openAfterSave.name"))
@@ -447,14 +411,13 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   }
 
   private renderSubscriptions(containerEl: HTMLElement): void {
-    /* The tab already says "subscriptions", so this row leads with the count
-       instead of repeating the word as a section heading. */
+    /* The tab already says "subscriptions", so this row is labelled by what it
+       offers instead of repeating that word; the count is the list below. */
     const toolbar = new Setting(containerEl)
-      .setName(t("settings.feeds.count", { count: String(this.plugin.store.feeds.length) }))
+      .setName(t("settings.feeds.toolbarLabel"))
       /* Named so the narrow-width rule in `styles.css` can stack this one row
          without touching the other `setting-item` rows in the tab. */
       .setClass("rss-feed-toolbar");
-    this.feedCountEl = toolbar.nameEl;
 
     /* All three get the same explicit class because Obsidian's own button
        defaults (grey fill + inset shadow) do not match the bordered buttons the
@@ -572,9 +535,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     rows.empty();
     if (this.feedTableEl) this.feedTableEl.hidden = feeds.length === 0;
     if (this.feedEmptyEl) this.feedEmptyEl.hidden = feeds.length > 0;
-    this.feedCountEl?.setText(
-      t("settings.feeds.count", { count: String(feeds.length) })
-    );
 
     if (feeds.length === 0) return;
 
@@ -589,10 +549,12 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     for (const feed of visible) this.appendFeedRow(rows, feed);
   }
 
-  /* Title / group / actions. The address rides along under the title instead of
-     getting a column of its own: at the width the settings modal actually
-     offers, a fourth column squeezes the address down to a few characters, and
-     the address is the least interesting of the four. */
+  /* Title / group / actions. The address used to ride along under the title as a
+     quieter second line; it is gone, because a row in this table is a picker and
+     the address only ever restated what the title already said while doubling
+     the height of every row. The search box above still matches on it, which is
+     the one place an address is worth typing. A feed with no title still falls
+     back to its address — an unlabelled row would be worse. */
   private appendFeedRow(parent: HTMLElement, feed: Feed): void {
     const row = parent.createDiv({ cls: "rss-feed-row" });
     row.setAttribute("role", "row");
@@ -600,7 +562,6 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     const titleCell = row.createDiv({ cls: "rss-feed-cell" });
     titleCell.setAttribute("role", "cell");
     titleCell.createSpan({ cls: "rss-feed-title", text: feed.title || feed.url });
-    titleCell.createSpan({ cls: "rss-feed-urlline", text: feed.url });
 
     const groupCell = row.createDiv({ cls: "rss-feed-cell" });
     groupCell.setAttribute("role", "cell");
@@ -651,12 +612,7 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   private renderAbout(containerEl: HTMLElement): void {
     /* No section heading: the tab already reads "About", so a heading repeating
        the same word right under it is noise. The subscriptions and note-export
-       tabs carry no heading for the same reason; only the general tab still has
-       them, because it holds two distinct groups (general and reader). */
-    new Setting(containerEl).setName(
-      t("settings.about.version", { version: this.plugin.manifest.version })
-    );
-
+       tabs carry no heading for the same reason. */
     new Setting(containerEl)
       .setName(t("settings.reset.name"))
       .setDesc(t("settings.reset.desc"))
@@ -664,6 +620,14 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
         button.setButtonText(t("settings.reset.button")).onClick(async () => {
           await this.plugin.resetSettings();
           this.display();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(t("settings.about.version", { version: this.plugin.manifest.version }))
+      .addButton((button) =>
+        button.setButtonText(t("settings.about.checkUpdate")).onClick(() => {
+          window.open(`obsidian://show-plugin?id=${this.plugin.manifest.id}`, "_blank");
         })
       );
   }

@@ -80,8 +80,6 @@ export class RssSubscribeView extends ItemView {
     const container = this.contentEl;
     container.empty();
     container.addClass("rss-subscribe-view");
-    container.style.setProperty("--rss-font-size", `${this.plugin.settings.readerFontSize}px`);
-    container.style.setProperty("--rss-line-height", String(this.plugin.settings.readerLineHeight));
 
     const shell = container.createDiv({ cls: "rss-shell" });
     const readerPane = shell.createDiv({ cls: "rss-reader-pane" });

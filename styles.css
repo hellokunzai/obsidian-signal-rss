@@ -1,8 +1,6 @@
 /* RSS Subscribe - Obsidian plugin styles */
 
 .rss-subscribe-view {
-  --rss-font-size: 16px;
-  --rss-line-height: 1.7;
   height: 100%;
 }
 
@@ -656,8 +654,8 @@
 
 .rss-subscribe-view .rss-content {
   color: var(--text-normal);
-  font-size: var(--rss-font-size);
-  line-height: var(--rss-line-height);
+  font-size: var(--font-text-size);
+  line-height: var(--line-height-normal);
   overflow-wrap: break-word;
 }
 
@@ -818,7 +816,15 @@
        tab to 30px, so `height` is written out by hand;
      - `button:not(.clickable-icon)` (0,1,1) paints a grey background and an
        inset shadow, which the prefix outranks.
-   `.is-active` lands at (0,3,0). */
+   `.is-active` lands at (0,3,0).
+
+   Type is the settings scale, same as the option rows this bar navigates to:
+   13px (`--font-ui-small`, which is what Obsidian 1.13's `.setting-item-name`
+   actually resolves to -- the later same-selector rule wins) in the panel's own
+   font stack. It used to be `--font-ui-medium` (15px), i.e. a step above every
+   row below it; the app sets headings from `--font-ui-large`, so a tab is a
+   label, not a heading. Those declarations live on `.rss-settings-tab`, not
+   here -- see the note there for why. */
 .rss-subscribe-settings .rss-settings-tabs {
   /* The bar scrolls with the panel instead of pinning itself to the top. It is
      the first thing in the settings page, so pinning it meant paying a
@@ -835,6 +841,11 @@
   gap: 7px;
   padding: 0;
   border-bottom: 1px solid var(--background-modifier-border);
+  /* The bar carries only the muted label colour. Type lives on the tab itself
+     (see `.rss-settings-tab`) because a `<button>` is the one element where
+     inheriting it is fragile. `color` is safe to keep here: nothing in the UA
+     sheet resets it on buttons. */
+  color: var(--text-muted);
 }
 
 .rss-subscribe-settings .rss-settings-tab {
@@ -852,9 +863,19 @@
   border-radius: 6px;
   background: transparent;
   box-shadow: none;
-  color: var(--text-muted);
+  color: inherit;
+  /* Type is written out here, on the `<button>` itself, rather than left to
+     inherit from `.rss-settings-tabs`. Inheritance does reach the tab today --
+     the negative baseline (`HEAD:styles.css`, declarations on the bar) measures
+     the tabs at 15px, i.e. they took the bar's value. But `button` is exactly
+     the element where that is easy to lose: the UA stylesheet sets
+     `button { font: 400 13.3333px Arial }`, so anything that resets the tab's
+     own `font` (an `all:` reset, a theme, a framework) silently lands the label
+     back on Arial and the bar's declaration stops mattering. `.rss-toolbar-btn`
+     below declares its own for the same reason.
+     Values match the option rows: 13px, the panel font stack, regular weight. */
   font-family: inherit;
-  font-size: var(--font-ui-medium);
+  font-size: var(--font-ui-small);
   font-weight: 400;
   line-height: 1;
   white-space: nowrap;
@@ -1005,7 +1026,13 @@
    the field is pinned right, which is how every other row in this panel reads.
    Geometry (20px padding, 8px radius, 206x38 field) is measured off the design
    reference rather than derived from a token, because the panel has no other
-   card quite this shape. */
+   card quite this shape.
+
+   Type, on the other hand, is the settings scale and nothing else: this card is
+   a settings row under the skin (name + description on the left, control on the
+   right), so its name takes `.setting-item-name`'s 13px and its description
+   takes `.setting-item-description`'s 12px. The old 16/14 pair was a step above
+   every row around it and made the card read as a page title. */
 .rss-subscribe-settings .rss-feed-search {
   display: flex;
   align-items: center;
@@ -1025,14 +1052,14 @@
 
 .rss-subscribe-settings .rss-feed-search-name {
   color: var(--text-normal);
-  font-size: 16px;
+  font-size: var(--font-ui-small);
   line-height: 1.4;
 }
 
 .rss-subscribe-settings .rss-feed-search-desc {
   margin-top: 2px;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: var(--font-ui-smaller);
   line-height: 1.5;
 }
 
@@ -1065,7 +1092,7 @@
   box-shadow: none;
   color: var(--text-normal);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--font-ui-small);
   line-height: 1.4;
   outline: none;
 }
@@ -1112,10 +1139,12 @@
 
 /* ---------- subscriptions tab: list ---------- */
 
-/* Three columns: title (with the address as a quieter second line) / group /
-   actions. The address deliberately has no column of its own — measured at the
-   widths this settings modal actually offers, a fourth column squeezes it down
-   to a few characters. */
+/* Three columns: title / group / actions. The address used to ride under the
+   title as a quieter second line and is no longer shown at all — an address
+   only restated what the title already said, while costing every row a second
+   line of height. It is still matched by the search box above, which is where
+   an address is actually worth typing. A feed with no title at all still falls
+   back to its address, because the alternative is an unlabelled row. */
 .rss-subscribe-settings .rss-feed-table {
   margin-top: 2px;
 }
@@ -1141,6 +1170,9 @@
 }
 
 .rss-subscribe-settings .rss-feed-row {
+  /* With the address line gone this is what sets the row height: one 13px line
+     plus the 6px padding comes to ~30px, and the floor keeps the rows from
+     crowding each other the way a bare list would. */
   min-height: 41px;
   padding: 6px 4px;
   border-bottom: 1px solid var(--divider-color);
@@ -1161,7 +1193,13 @@
 }
 
 /* Titles are single-line: the default treatment for a narrow list. A wrapped
-   title makes the row height jump and pushes the actions out of line. */
+   title makes the row height jump and pushes the actions out of line.
+
+   `--font-ui-small` is the size Obsidian 1.13 paints `.setting-item-name` with,
+   so a feed name reads exactly like the name on the stock settings row above it
+   (the "count + three buttons" row). It used to be `--font-ui-medium` (15px),
+   which was right against the older 15px rows and is now a step too large: the
+   app moved its own rows down to 13px and this list had not followed. */
 .rss-subscribe-settings .rss-feed-title {
   display: block;
   min-width: 0;
@@ -1169,23 +1207,13 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--text-normal);
-  font-size: var(--font-ui-medium);
+  font-size: var(--font-ui-small);
   font-weight: 500;
   line-height: 1.35;
 }
 
-.rss-subscribe-settings .rss-feed-urlline {
-  display: block;
-  min-width: 0;
-  margin-top: 2px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--text-faint);
-  font-size: var(--font-ui-smaller);
-  line-height: 1.4;
-}
-
+/* 12px, matching `.setting-item-description`: the group column is the secondary
+   fact on the row, and at 13px it read as loudly as the title next to it. */
 .rss-subscribe-settings .rss-feed-group {
   display: block;
   min-width: 0;
@@ -1193,7 +1221,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--text-muted);
-  font-size: var(--font-ui-small);
+  font-size: var(--font-ui-smaller);
   line-height: 1.4;
 }
 

@@ -98,8 +98,6 @@ export interface RssSubscribeSettings {
    * button reads it, which is why it stays out of the settings UI.
    */
   cacheFolderPrevious: string;
-  readerFontSize: number;
-  readerLineHeight: number;
   noteFolder: string;
   noteFilenameTemplate: string;
   frontmatterTemplate: string;
@@ -130,8 +128,6 @@ export const DEFAULT_SETTINGS: RssSubscribeSettings = {
   fetchFulltextOnRefresh: false,
   cacheFolder: DEFAULT_CACHE_FOLDER,
   cacheFolderPrevious: "",
-  readerFontSize: 16,
-  readerLineHeight: 1.7,
   noteFolder: "RSS Inbox",
   noteFilenameTemplate: "{{published:YYYY-MM-DD}} {{title}}",
   frontmatterTemplate: [
