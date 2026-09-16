@@ -1,17 +1,19 @@
 # Signal RSS
 
-Subscribe to RSS and Atom feeds, read them in a dedicated reader tab inside Obsidian, and turn any article into a Markdown note in your vault.
+**English** · [简体中文](README.zh.md)
+
+Subscribe to RSS, Atom and RSS 1.0 (RDF) feeds, read them in a dedicated reader tab inside Obsidian, and turn any article into a Markdown note in your vault.
 
 ## Features
 
-- **Subscriptions** — add feeds by pasting either a feed URL or a site home page; RSS 2.0, Atom and RSS 1.0 (RDF) are supported. Feeds can be sorted into groups, and groups themselves can be created, renamed and deleted from the subscription tree.
-- **Subscription list in the sidebar** — the search box, the feed tree, the article list and the drag handle between them live in the right sidebar. The list is the only place you pick from, and what it picks is what the reader shows.
-- **Reader tab** — the selected article opens in its own tab in the main area, with the title, source, author and date up top and the article body below. Star, mark read or unread, fetch full text, open in the browser and save as note sit next to the title.
+- **Subscriptions** — add a feed by pasting either its feed URL or the site's home page; RSS 2.0, Atom and RSS 1.0 (RDF) are supported. Feeds can be sorted into groups, and groups themselves can be created, renamed and deleted from the subscription tree.
+- **Subscription list in the right sidebar** — the search box, the filters, the feed tree, the article list and the drag handle between them all live in the right sidebar. The list is the only place you pick from, and what it picks is what the reader shows.
+- **Reader tab** — the selected article opens in its own tab in the main area. Its title becomes the tab label and the view header; a one-row toolbar above the body carries star, read/unread, fetch full text, open in the browser and save as note.
 - **Full text extraction** — when a feed only ships a summary, the article page is fetched and its main content extracted, so you read (and keep) the whole thing.
-- **Markdown export** — save any article as a note. The destination folder, the file name and both the front matter and body templates are configurable, with `{{title}}`, `{{feed}}`, `{{author}}`, `{{published}}`, `{{created}}`, `{{summary}}` and `{{content}}` variables.
-- **Automatic refresh** — feeds are polled in the background at an interval you choose. Set it to 0 to switch automatic refresh off.
-- **Read state** — unread counts per feed, a global unread count, read/unread toggling and a star list.
-- **Search and filters** — full-text search over the fetched articles plus per-feed include/exclude keyword rules.
+- **Markdown export** — save any article as a note. The destination folder, the file name and both the front matter and the body templates are configurable.
+- **Automatic refresh** — feeds are polled in the background at an interval you choose. Set it to 0 to switch automatic refresh off. The ribbon icon's tooltip carries the current unread count.
+- **Read state** — unread counts per feed and per group, a global unread count, read/unread toggling and a star list.
+- **Search** — filters the article list as you type, matching against titles, authors and summaries.
 - **OPML** — import an OPML file exported by another reader, and export your subscriptions back out.
 - **Interface language** — English and Simplified Chinese, following the Obsidian language setting.
 
@@ -40,6 +42,13 @@ Right-click the empty space under the subscription tree to create a group, or to
 
 The list only ever lives in the sidebar, so there is no position to choose: **Signal RSS: Toggle the subscription list sidebar** shows and hides it, and while it is hidden the reader's empty state offers a button that brings it back.
 
+### The list pane
+
+- **Search box** — filters the article list as you type, paused briefly so typing does not fight the caret.
+- **Three filters** — **All articles**, **Unread** and **Starred**, each carrying its own count. Picking a feed in the tree narrows the list to that feed instead.
+- **Feed tree** — a group header folds and unfolds on click, and shows its own unread total while folded.
+- **Drag handle** — the divider between the tree and the article list resizes the two. Drag it, double-click it to go back to the default, or focus it and use the arrow keys (hold Shift for bigger steps).
+
 ## Commands
 
 | Command | Description |
@@ -55,28 +64,66 @@ The list only ever lives in the sidebar, so there is no position to choose: **Si
 | Expand all groups | Unfold every group in the feed tree |
 | Toggle the subscription list sidebar | Show or hide the list in the right sidebar |
 
+The three commands that need something to act on — save the current article, collapse all groups, expand all groups — are hidden from the command palette while they would do nothing.
+
 ## Settings
+
+The settings page is split into four tabs.
+
+### Basic settings
 
 | Setting | Description |
 | --- | --- |
 | Automatic refresh interval | Background polling interval in minutes; 0 turns it off |
 | Request timeout | How long to wait for a feed before giving up (5–120 s) |
-| Articles kept per feed | Upper bound on stored articles per feed |
+| Articles kept per feed | Upper bound on stored articles per feed; the oldest are dropped past it |
 | Mark as read when opened | Clear the unread flag as soon as an article is opened |
 | Fetch full text when opened | Fetch the article page when a feed only ships a summary |
 | Fetch full text while refreshing | Do that during refresh instead, so articles are readable offline |
-| Custom cache folder | Vault-relative folder holding the caches; *Migrate cache* moves the data across from a folder used earlier |
-| Reader font size / line height | Typography of the article body |
-| Note folder | Destination folder for saved articles |
-| File name template | Template for the note file name |
-| Front matter template | YAML written at the top of every saved note |
-| Note body template | Wrapper around the article body |
+| Custom cache folder | Vault-relative folder holding the caches, with a **Migrate cache** button beside it |
+
+### Subscriptions
+
+The list of everything you subscribe to, with **Import OPML**, **Export OPML** and **Add feed** on the toolbar, a search box that filters by title, group or address, and one row per feed showing its title, its group and three actions: refresh, edit and delete.
+
+### Note export
+
+| Setting | Description |
+| --- | --- |
 | Open the note after saving | Open the created note in a new tab |
+| Note folder | Destination folder for saved articles; created when missing |
+| File name template | Template for the note file name |
+| Front matter template | YAML written between the `---` markers at the top of every saved note |
+| Note body template | Wrapper around the article body |
+
+### About
+
+Shows the version, a **Check for updates** button that opens the plugin's page in Obsidian, and **Reset settings**, which restores every option on the page to its default while keeping your subscriptions.
+
+### Template variables
+
+Both the file name and the two templates accept these variables:
+
+| Variable | Value |
+| --- | --- |
+| `{{title}}` | Article title |
+| `{{feed}}` | Feed title, falling back to its address |
+| `{{group}}` | Group the feed is filed under |
+| `{{author}}` | Article author |
+| `{{link}}` | Article address |
+| `{{published}}` | Publication date, `YYYY-MM-DD` by default |
+| `{{created}}` | Date the note is written, `YYYY-MM-DD` by default |
+| `{{summary}}` | Summary as shipped by the feed |
+| `{{content}}` | The article body, converted to Markdown — body template only |
+
+A date variable takes a Moment.js format after a colon, for example `{{published:YYYY-MM-DD HH:mm}}`. Appending `:yaml` escapes a value for the front matter, which is how the default front matter template writes `{{title:yaml}}` and `{{author:yaml}}`. The default file name template is `{{published:YYYY-MM-DD}} {{title}}`, and the default note folder is `RSS Inbox`.
 
 ## Where data lives
 
 - Subscriptions, read/starred state and settings are stored in the plugin's `data.json`.
-- Article content is cached under `.signal-rss/` at the root of your vault, one JSON file per feed — a dot folder, so it stays out of the file explorer and out of Obsidian's index. The folder is configurable; earlier versions kept it at `<your vault>/.obsidian/plugins/signal-rss/cache/`, and **Settings → Custom cache folder → Migrate cache** moves anything still sitting in an older folder (including that one) into the current folder, merging rather than overwriting so no read flag or extracted body is lost. Nothing is written into your notes folder unless you explicitly save an article.
+- Article content is cached under `.signal-rss/` at the root of your vault, one JSON file per feed — a dot folder, so it stays out of the file explorer and out of Obsidian's index. The folder is configurable; changing it does not move anything by itself, and **Settings → Basic settings → Custom cache folder → Migrate cache** is the deliberate second step that pulls the caches across from the folder previously in use, merging rather than overwriting so no read flag or extracted body is lost.
+- Versions up to 0.7.0 kept the caches inside the plugin folder instead (`<config folder>/plugins/<plugin id>/cache/`, with `.obsidian` as the usual config folder). If you have been using the plugin since before it was renamed from `rss-subscribe` to `signal-rss`, a cache left behind under the old plugin id needs to be moved into the current folder by hand.
+- Nothing is written into your notes folder unless you explicitly save an article.
 
 ## Privacy and network access
 
@@ -120,6 +167,8 @@ The layout adapts to a phone rather than merely fitting on it:
 
 ## Development
 
+Requires Node.js 18 or newer (CI uses 22) and Obsidian 1.7.2 or newer.
+
 ```bash
 npm install
 npm run dev     # watch build
@@ -127,6 +176,21 @@ npm run build   # type check + production bundle
 ```
 
 Copy `main.js`, `manifest.json` and `styles.css` into a test vault's `.obsidian/plugins/signal-rss/` to try a build.
+
+### Layout
+
+| Path | Contents |
+| --- | --- |
+| `src/main.ts` | Plugin entry: commands, view registration, shared list state, refresh and feed handling |
+| `src/settings.ts` | The tabbed settings page |
+| `src/i18n/index.ts` | Every user-visible string, in `en` and `zh-cn` |
+| `src/core/` | Feed parsing, fetching, error normalisation, full text extraction, OPML, HTML sanitising, the cache store |
+| `src/view/` | The sidebar list pane and the reader tab |
+| `src/note/` | Template rendering and note writing |
+| `src/ui/` | The add-feed and group-name dialogs |
+| `styles.css` | Plugin styles, using Obsidian's CSS variables |
+
+Every user-visible string goes through `t()`; a literal is not allowed to reach the UI directly.
 
 ### Checks
 
