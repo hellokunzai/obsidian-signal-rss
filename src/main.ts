@@ -34,7 +34,7 @@ import { RssSubscribeView } from "./view/feed-view";
 import { RssSidebarView } from "./view/sidebar-view";
 import { UNGROUPED_KEY, VIEW_TYPE_RSS_SIDEBAR, VIEW_TYPE_RSS_SUBSCRIBE } from "./view/constants";
 
-const EXPORT_BASENAME = "rss-subscribe-subscriptions";
+const EXPORT_BASENAME = "signal-rss-subscriptions";
 const REFRESH_CONCURRENCY = 3;
 
 interface PersistedData {
@@ -346,7 +346,7 @@ export default class RssSubscribePlugin extends Plugin {
     else next.add(key);
     this.settings.collapsedGroups = [...next];
     this.saveSettings().catch((error) =>
-      console.error("RSS Subscribe: could not persist folded groups", error)
+      console.error("Signal RSS: could not persist folded groups", error)
     );
     this.notifyViews();
   }
@@ -432,7 +432,7 @@ export default class RssSubscribePlugin extends Plugin {
       }
       return { ok: true, feeds: report.copied + report.merged, articles: report.articles };
     } catch (error) {
-      console.error("RSS Subscribe: could not migrate the cache", error);
+      console.error("Signal RSS: could not migrate the cache", error);
       return { ok: false, message: describeError(error) };
     }
   }
@@ -975,7 +975,7 @@ export default class RssSubscribePlugin extends Plugin {
       const found = await discoverFeed(value, this.requestTimeoutMs);
       return { ok: true, url: found.url, title: found.feed.title };
     } catch (error) {
-      console.error("RSS Subscribe: feed discovery failed", error);
+      console.error("Signal RSS: feed discovery failed", error);
       return { ok: false, message: describeError(error), hint: networkHint(error) };
     }
   }
@@ -1165,7 +1165,7 @@ export default class RssSubscribePlugin extends Plugin {
       await this.store.flush();
       return extracted;
     } catch (error) {
-      console.error("RSS Subscribe: full text extraction failed", error);
+      console.error("Signal RSS: full text extraction failed", error);
       this.store.update(feed.id, article.id, { fulltextFailed: true });
       await this.store.flush();
       return "";
@@ -1192,7 +1192,7 @@ export default class RssSubscribePlugin extends Plugin {
   }
 
   async importOpmlFromFile(): Promise<void> {
-    const input = document.body.createEl("input", { cls: "rss-subscribe-file-input" });
+    const input = document.body.createEl("input", { cls: "signal-rss-file-input" });
     input.type = "file";
     input.accept = ".opml,.xml,text/xml,application/xml";
     input.addEventListener("change", () => {

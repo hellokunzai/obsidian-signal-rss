@@ -52,7 +52,7 @@ export class RssSidebarView extends ItemView {
     // Read the live scroll offsets and caret before wiping the DOM.
     this.pane.capture(container);
     container.empty();
-    container.addClass("rss-subscribe-view");
+    container.addClass("signal-rss-view");
 
     const shell = container.createDiv({ cls: "rss-shell" });
     // No toolbar: the bulk actions hang off each group's own menu.

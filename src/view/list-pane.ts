@@ -572,7 +572,7 @@ export class ListPane {
   }
 
   private viewRoot(pane: HTMLElement): HTMLElement {
-    const root = pane.closest(".rss-subscribe-view");
+    const root = pane.closest(".signal-rss-view");
     return root instanceof HTMLElement ? root : pane;
   }
 

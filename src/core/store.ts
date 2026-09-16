@@ -214,7 +214,7 @@ export class FeedStore {
         await adapter.mkdir(this.folder);
       }
     } catch (error) {
-      console.error("RSS Subscribe: could not create the cache folder", error);
+      console.error("Signal RSS: could not create the cache folder", error);
     }
   }
 
@@ -245,7 +245,7 @@ export class FeedStore {
       }
       return out;
     } catch (error) {
-      console.error(`RSS Subscribe: could not read the cache of ${label}`, error);
+      console.error(`Signal RSS: could not read the cache of ${label}`, error);
       return [];
     }
   }
@@ -414,7 +414,7 @@ export class FeedStore {
       const path = this.cachePath(feedId);
       if (await adapter.exists(path)) await adapter.remove(path);
     } catch (error) {
-      console.error(`RSS Subscribe: could not delete the cache of ${feedId}`, error);
+      console.error(`Signal RSS: could not delete the cache of ${feedId}`, error);
     }
   }
 
@@ -428,7 +428,7 @@ export class FeedStore {
       try {
         await this.app.vault.adapter.write(this.cachePath(feedId), JSON.stringify(list));
       } catch (error) {
-        console.error(`RSS Subscribe: could not write the cache of ${feedId}`, error);
+        console.error(`Signal RSS: could not write the cache of ${feedId}`, error);
       }
     }
   }
@@ -456,7 +456,7 @@ export class FeedStore {
         if (!(await adapter.exists(source))) continue;
         files = (await adapter.list(source)).files;
       } catch (error) {
-        console.error(`RSS Subscribe: could not list the cache folder ${source}`, error);
+        console.error(`Signal RSS: could not list the cache folder ${source}`, error);
         continue;
       }
       for (const file of files) {
@@ -497,7 +497,7 @@ export class FeedStore {
     } catch (error) {
       /* Nothing is deleted below, so a failed write leaves the data where it
          was and the button can simply be pressed again. */
-      console.error(`RSS Subscribe: could not write the migrated cache of ${name}`, error);
+      console.error(`Signal RSS: could not write the migrated cache of ${name}`, error);
       return;
     }
 
@@ -510,7 +510,7 @@ export class FeedStore {
     } catch (error) {
       /* Already written to the target folder, so the leftover copy is only
          untidy — not worth failing the whole migration over. */
-      console.error(`RSS Subscribe: could not remove the old cache of ${name}`, error);
+      console.error(`Signal RSS: could not remove the old cache of ${name}`, error);
     }
   }
 

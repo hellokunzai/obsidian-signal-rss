@@ -83,7 +83,7 @@ async function ensureFolder(app: App, folder: string): Promise<string> {
       try {
         await app.vault.createFolder(current);
       } catch (error) {
-        console.error(`RSS Subscribe: could not create the folder ${current}`, error);
+        console.error(`Signal RSS: could not create the folder ${current}`, error);
       }
     }
   }

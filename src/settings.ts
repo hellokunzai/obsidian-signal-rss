@@ -33,7 +33,7 @@ const SETTINGS_TABS: SettingsTabDef[] = [
   { id: "about", labelKey: "settings.tab.about", icon: "badge-info" },
 ];
 
-const PANEL_ID = "rss-subscribe-settings-panel";
+const PANEL_ID = "signal-rss-settings-panel";
 
 /* How long the cache folder field waits after the last keystroke before the
    store is re-pointed at it. Applying on every keystroke would create a folder
@@ -86,7 +86,7 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.addClass("rss-subscribe-settings");
+    containerEl.addClass("signal-rss-settings");
 
     this.renderTabBar(containerEl);
 
@@ -387,10 +387,10 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName(t("settings.frontmatter.name"))
       .setDesc(t("settings.frontmatter.desc"))
-      .setClass("rss-subscribe-setting-stacked")
+      .setClass("signal-rss-setting-stacked")
       .addTextArea((area) => {
         area.inputEl.rows = 8;
-        area.inputEl.addClass("rss-subscribe-template-input");
+        area.inputEl.addClass("signal-rss-template-input");
         area.setValue(this.plugin.settings.frontmatterTemplate).onChange(async (value) => {
           this.plugin.settings.frontmatterTemplate = value;
           await this.plugin.saveSettings();
@@ -400,10 +400,10 @@ export class RssSubscribeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName(t("settings.noteBody.name"))
       .setDesc(t("settings.noteBody.desc"))
-      .setClass("rss-subscribe-setting-stacked")
+      .setClass("signal-rss-setting-stacked")
       .addTextArea((area) => {
         area.inputEl.rows = 6;
-        area.inputEl.addClass("rss-subscribe-template-input");
+        area.inputEl.addClass("signal-rss-template-input");
         area.setValue(this.plugin.settings.noteBodyTemplate).onChange(async (value) => {
           this.plugin.settings.noteBodyTemplate = value;
           await this.plugin.saveSettings();

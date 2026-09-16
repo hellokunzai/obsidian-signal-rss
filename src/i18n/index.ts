@@ -6,7 +6,7 @@ import { moment } from "obsidian";
 type Dict = Record<string, string>;
 
 const en: Dict = {
-  "ribbon.tooltip": "RSS Subscribe",
+  "ribbon.tooltip": "Signal RSS",
   "command.openView": "Open RSS reader",
   "command.refreshAll": "Refresh all feeds",
   "command.addFeed": "Add feed",
@@ -18,7 +18,7 @@ const en: Dict = {
   "command.expandGroups": "Expand all groups",
   "command.toggleSidebar": "Toggle the subscription list sidebar",
 
-  "view.title": "RSS Subscribe",
+  "view.title": "Signal RSS",
   "view.sidebar.title": "Subscriptions",
   "view.filter.all": "All articles",
   "view.filter.unread": "Unread",
@@ -103,7 +103,7 @@ const en: Dict = {
   "modal.addFeed.title": "Add feed",
   "modal.addFeed.url": "Feed or site URL",
   "modal.addFeed.urlDesc":
-    "Paste an RSS or Atom feed URL. A site home page also works: RSS Subscribe will look for the feed link.",
+    "Paste an RSS or Atom feed URL. A site home page also works: Signal RSS will look for the feed link.",
   "modal.addFeed.urlPlaceholder": "https://example.com/feed.xml",
   "modal.addFeed.titleField": "Title",
   "modal.addFeed.titlePlaceholder": "Fetched from the feed",

@@ -81,7 +81,7 @@ export class RssSubscribeView extends ItemView {
   render(): void {
     const container = this.contentEl;
     container.empty();
-    container.addClass("rss-subscribe-view");
+    container.addClass("signal-rss-view");
 
     const shell = container.createDiv({ cls: "rss-shell" });
     const readerPane = shell.createDiv({ cls: "rss-reader-pane" });

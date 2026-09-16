@@ -1,7 +1,7 @@
-export const VIEW_TYPE_RSS_SUBSCRIBE = "rss-subscribe-view";
+export const VIEW_TYPE_RSS_SUBSCRIBE = "signal-rss-view";
 
 /** The subscription list, docked in the right sidebar. Its only host. */
-export const VIEW_TYPE_RSS_SIDEBAR = "rss-subscribe-sidebar";
+export const VIEW_TYPE_RSS_SIDEBAR = "signal-rss-sidebar";
 
 export type FilterKind = "all" | "unread" | "starred" | "feed";
 

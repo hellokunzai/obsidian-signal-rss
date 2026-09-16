@@ -1,5 +1,5 @@
 {
-  "name": "rss-subscribe",
+  "name": "signal-rss",
   "version": "0.8.1",
   "description": "Subscribe to RSS and Atom feeds, read articles in a dedicated reader tab, and save any article to your vault as a Markdown note.",
   "main": "main.js",

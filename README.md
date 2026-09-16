@@ -1,4 +1,4 @@
-# RSS Subscribe
+# Signal RSS
 
 Subscribe to RSS and Atom feeds, read them in a dedicated reader tab inside Obsidian, and turn any article into a Markdown note in your vault.
 
@@ -19,18 +19,18 @@ Subscribe to RSS and Atom feeds, read them in a dedicated reader tab inside Obsi
 
 ### From the community plugin directory
 
-Search for "RSS Subscribe" under **Settings → Community plugins → Browse**.
+Search for "Signal RSS" under **Settings → Community plugins → Browse**.
 
 ### Manually
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the latest release.
-2. Copy them into `<your vault>/.obsidian/plugins/rss-subscribe/`.
+2. Copy them into `<your vault>/.obsidian/plugins/signal-rss/`.
 3. Reload Obsidian and enable the plugin under **Settings → Community plugins**.
 
 ## Usage
 
 1. Click the RSS icon in the ribbon. The subscription list opens in the right sidebar.
-2. Add a feed. The empty list offers an **Add feed** button, and **RSS Subscribe: Add feed** in the command palette works from anywhere; with feeds already sorted into groups, right-clicking a group header gives you an **Add feed…** that pre-fills that group. Pasting a site home page works too — RSS Subscribe looks for the feed link on the page.
+2. Add a feed. The empty list offers an **Add feed** button, and **Signal RSS: Add feed** in the command palette works from anywhere; with feeds already sorted into groups, right-clicking a group header gives you an **Add feed…** that pre-fills that group. Pasting a site home page works too — Signal RSS looks for the feed link on the page.
 3. Articles show up under the three filters at the top of the list. Clicking one opens it in a reader tab in the main area.
 4. Use **Save as note** in the reader to write the article into your vault.
 
@@ -38,7 +38,7 @@ Right-click a feed in the sidebar for refresh, mark-as-read, edit and delete. Th
 
 Right-click the empty space under the subscription tree to create a group, or to add a feed without filing it into one. A group you create stays in the tree even while it holds no feeds — instead of an empty space it shows an **Add feed…** row, which pre-fills the group — until you delete it again.
 
-The list only ever lives in the sidebar, so there is no position to choose: **RSS Subscribe: Toggle the subscription list sidebar** shows and hides it, and while it is hidden the reader's empty state offers a button that brings it back.
+The list only ever lives in the sidebar, so there is no position to choose: **Signal RSS: Toggle the subscription list sidebar** shows and hides it, and while it is hidden the reader's empty state offers a button that brings it back.
 
 ## Commands
 
@@ -76,7 +76,7 @@ The list only ever lives in the sidebar, so there is no position to choose: **RS
 ## Where data lives
 
 - Subscriptions, read/starred state and settings are stored in the plugin's `data.json`.
-- Article content is cached under `.rss-subscribe/` at the root of your vault, one JSON file per feed — a dot folder, so it stays out of the file explorer and out of Obsidian's index. The folder is configurable; earlier versions kept it at `<your vault>/.obsidian/plugins/rss-subscribe/cache/`, and **Settings → Custom cache folder → Migrate cache** moves anything still sitting in an older folder (including that one) into the current folder, merging rather than overwriting so no read flag or extracted body is lost. Nothing is written into your notes folder unless you explicitly save an article.
+- Article content is cached under `.signal-rss/` at the root of your vault, one JSON file per feed — a dot folder, so it stays out of the file explorer and out of Obsidian's index. The folder is configurable; earlier versions kept it at `<your vault>/.obsidian/plugins/signal-rss/cache/`, and **Settings → Custom cache folder → Migrate cache** moves anything still sitting in an older folder (including that one) into the current folder, merging rather than overwriting so no read flag or extracted body is lost. Nothing is written into your notes folder unless you explicitly save an article.
 
 ## Privacy and network access
 
@@ -89,7 +89,7 @@ There is no account, no telemetry, no analytics and no third-party service. Requ
 
 ## Troubleshooting a feed that will not load
 
-Some addresses are unreachable, rate-limited, or hang on the server side. RSS Subscribe gives up after the configured request timeout and reports the reason rather than waiting indefinitely, and it stops early when the host itself is unreachable instead of retrying every guessed path.
+Some addresses are unreachable, rate-limited, or hang on the server side. Signal RSS gives up after the configured request timeout and reports the reason rather than waiting indefinitely, and it stops early when the host itself is unreachable instead of retrying every guessed path.
 
 A public **RSS bridge** (such as `rsshub.app` or one of the community instances) is often the culprit rather than the site you actually want:
 
@@ -126,7 +126,7 @@ npm run dev     # watch build
 npm run build   # type check + production bundle
 ```
 
-Copy `main.js`, `manifest.json` and `styles.css` into a test vault's `.obsidian/plugins/rss-subscribe/` to try a build.
+Copy `main.js`, `manifest.json` and `styles.css` into a test vault's `.obsidian/plugins/signal-rss/` to try a build.
 
 ## License
 

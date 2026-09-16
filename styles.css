@@ -1,15 +1,15 @@
-/* RSS Subscribe - Obsidian plugin styles */
+/* Signal RSS - Obsidian plugin styles */
 
-.rss-subscribe-view {
+.signal-rss-view {
   height: 100%;
 }
 
-.workspace-leaf-content[data-type="rss-subscribe-view"] .rss-subscribe-view,
-.workspace-leaf-content[data-type="rss-subscribe-sidebar"] .rss-subscribe-view {
+.workspace-leaf-content[data-type="signal-rss-view"] .signal-rss-view,
+.workspace-leaf-content[data-type="signal-rss-sidebar"] .signal-rss-view {
   padding: 0;
 }
 
-.rss-subscribe-view .rss-shell {
+.signal-rss-view .rss-shell {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -21,7 +21,7 @@
 /* Search sits at the top of the list pane, above the feed tree. The row is a
    flex line so the input can stretch to the full width: `flex: 1 1 auto` on the
    input is what sizes it, not a hard-coded width. */
-.rss-subscribe-view .rss-search-bar {
+.signal-rss-view .rss-search-bar {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -30,14 +30,14 @@
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.rss-subscribe-view .rss-search {
+.signal-rss-view .rss-search {
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
   height: 28px;
 }
 
-.rss-subscribe-view .rss-icon-button {
+.signal-rss-view .rss-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -61,18 +61,18 @@
    pointer that can actually hover; `:active` / `.is-active` still carry the
    feedback on touch. */
 @media (hover: hover) {
-  .rss-subscribe-view .rss-icon-button:hover {
+  .signal-rss-view .rss-icon-button:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);
   }
 }
 
-.rss-subscribe-view .rss-icon-button svg {
+.signal-rss-view .rss-icon-button svg {
   width: 16px;
   height: 16px;
 }
 
-.rss-subscribe-view .rss-button {
+.signal-rss-view .rss-button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -92,19 +92,19 @@
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-button:hover {
+  .signal-rss-view .rss-button:hover {
     background-color: var(--background-modifier-hover);
   }
 }
 
-.rss-subscribe-view .rss-button.rss-button-cta {
+.signal-rss-view .rss-button.rss-button-cta {
   border-color: var(--interactive-accent);
   background-color: var(--interactive-accent);
   color: var(--text-on-accent);
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-button.rss-button-cta:hover {
+  .signal-rss-view .rss-button.rss-button-cta:hover {
     border-color: var(--interactive-accent-hover);
     background-color: var(--interactive-accent-hover);
   }
@@ -114,7 +114,7 @@
 
 /* The subscription list now only ever lives in the right sidebar, so the pane
    fills the available space. */
-.rss-subscribe-view .rss-list-pane {
+.signal-rss-view .rss-list-pane {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -128,7 +128,7 @@
    falling back to the 45% share this pane used to hard-code. `border-box` is
    load-bearing here — without it the 8px/6px padding is added on top of the
    stored height, so every drag would start 14px off from `offsetHeight`. */
-.rss-subscribe-view .rss-feed-section {
+.signal-rss-view .rss-feed-section {
   box-sizing: border-box;
   flex: 0 1 auto;
   height: var(--rss-feed-height, 45%);
@@ -142,7 +142,7 @@
    from either edge — the same inset the row highlight uses, so the line reads
    as belonging to the list rather than to the pane. Only the top margin is
    declared: the group header below already brings its own. */
-.rss-subscribe-view .rss-tree-divider {
+.signal-rss-view .rss-tree-divider {
   margin: 6px 2px 0;
   border-top: 1px solid var(--background-modifier-border);
 }
@@ -151,7 +151,7 @@
    content height to the flex base size, the leftover goes negative, and the
    feed section above gets shrunk right back — the dragged height would be
    silently ignored. Basis 0 makes the article list take exactly what is left. */
-.rss-subscribe-view .rss-article-section {
+.signal-rss-view .rss-article-section {
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
@@ -159,14 +159,14 @@
   padding: 6px 6px 0;
 }
 
-.rss-subscribe-view .rss-article-list {
+.signal-rss-view .rss-article-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding-bottom: 14px;
 }
 
-.rss-subscribe-view .rss-section-label {
+.signal-rss-view .rss-section-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -182,7 +182,7 @@
 /* Both handles are real separators: focusable, arrow-key resizable, and
    `touch-action: none` so a touch drag is not swallowed by a scroll gesture.
    The hairline lives on ::before so the hit area stays bigger than the line. */
-.rss-subscribe-view .rss-resizer {
+.signal-rss-view .rss-resizer {
   position: relative;
   flex: 0 0 auto;
   z-index: 1;
@@ -190,81 +190,81 @@
   touch-action: none;
 }
 
-.rss-subscribe-view .rss-resizer::before {
+.signal-rss-view .rss-resizer::before {
   content: "";
   position: absolute;
   background-color: var(--background-modifier-border);
   transition: background-color 120ms ease;
 }
 
-.rss-subscribe-view .rss-resizer.is-dragging::before,
-.rss-subscribe-view .rss-resizer:focus-visible::before {
+.signal-rss-view .rss-resizer.is-dragging::before,
+.signal-rss-view .rss-resizer:focus-visible::before {
   background-color: var(--interactive-accent);
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-resizer:hover::before {
+  .signal-rss-view .rss-resizer:hover::before {
     background-color: var(--interactive-accent);
   }
 }
 
 /* The ::before is the focus ring; the default outline would box the hit area. */
-.rss-subscribe-view .rss-resizer:focus-visible {
+.signal-rss-view .rss-resizer:focus-visible {
   outline: none;
 }
 
-.rss-subscribe-view .rss-resizer-row {
+.signal-rss-view .rss-resizer-row {
   height: 7px;
   cursor: row-resize;
 }
 
-.rss-subscribe-view .rss-resizer-row::before {
+.signal-rss-view .rss-resizer-row::before {
   left: 0;
   right: 0;
   top: 3px;
   height: 1px;
 }
 
-.rss-subscribe-view .rss-resizer-row.is-dragging::before,
-.rss-subscribe-view .rss-resizer-row:focus-visible::before {
+.signal-rss-view .rss-resizer-row.is-dragging::before,
+.signal-rss-view .rss-resizer-row:focus-visible::before {
   top: 2px;
   height: 3px;
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-resizer-row:hover::before {
+  .signal-rss-view .rss-resizer-row:hover::before {
     top: 2px;
     height: 3px;
   }
 }
 
-.rss-subscribe-view .rss-resizer.is-hidden {
+.signal-rss-view .rss-resizer.is-hidden {
   display: none;
 }
 
 /* While dragging, keep the resize cursor under the pointer wherever it goes and
    stop it selecting reader text. Scoping under `.rss-shell` gives (0,3,0), which
    beats the buttons' own `cursor: pointer` no matter where this block sits. */
-.rss-subscribe-view.rss-resizing .rss-shell * {
+.signal-rss-view.rss-resizing .rss-shell * {
   user-select: none;
 }
 
-.rss-subscribe-view.rss-resizing-y .rss-shell * {
+.signal-rss-view.rss-resizing-y .rss-shell * {
   cursor: row-resize;
 }
 
 /* A 5px hairline is far too thin for a finger. */
 @media (pointer: coarse) {
-  .rss-subscribe-view .rss-resizer-row {
+  .signal-rss-view .rss-resizer-row {
     height: 14px;
   }
 
-  .rss-subscribe-view .rss-resizer-row::before {
+  .signal-rss-view .rss-resizer-row::before {
     top: 6px;
   }
 
-  .rss-subscribe-view .rss-resizer-row.is-dragging::before,
-  .rss-subscribe-view .rss-resizer-row:focus-visible::before {
+  .signal-rss-view .rss-resizer-row.is-dragging::before,
+  .signal-rss-view .rss-resizer-row:focus-visible::before {
     top: 5px;
     height: 4px;
   }
@@ -276,7 +276,7 @@
    `button { height: var(--input-height); white-space: nowrap }` rule.
    padding-left + chevron width + gap = 22px, which lines the group name up
    with the feed labels below it. */
-.rss-subscribe-view .rss-group-toggle {
+.signal-rss-view .rss-group-toggle {
   display: flex;
   align-items: center;
   gap: 3px;
@@ -301,21 +301,21 @@
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-group-toggle:hover {
+  .signal-rss-view .rss-group-toggle:hover {
     background-color: var(--background-modifier-hover);
   }
 }
 
-.rss-subscribe-view .rss-group-toggle.is-collapsed {
+.signal-rss-view .rss-group-toggle.is-collapsed {
   color: var(--text-muted);
 }
 
-.rss-subscribe-view .rss-group-toggle:focus-visible {
+.signal-rss-view .rss-group-toggle:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: -2px;
 }
 
-.rss-subscribe-view .rss-group-chevron {
+.signal-rss-view .rss-group-chevron {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -326,17 +326,17 @@
   transition: transform 120ms ease;
 }
 
-.rss-subscribe-view .rss-group-chevron svg {
+.signal-rss-view .rss-group-chevron svg {
   width: 14px;
   height: 14px;
 }
 
 /* One icon for both states: turn the down-chevron a quarter turn to point right. */
-.rss-subscribe-view .rss-group-toggle.is-collapsed .rss-group-chevron {
+.signal-rss-view .rss-group-toggle.is-collapsed .rss-group-chevron {
   transform: rotate(-90deg);
 }
 
-.rss-subscribe-view .rss-group-name {
+.signal-rss-view .rss-group-name {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -344,7 +344,7 @@
   text-overflow: ellipsis;
 }
 
-.rss-subscribe-view .rss-group-count {
+.signal-rss-view .rss-group-count {
   flex: 0 0 auto;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
@@ -352,13 +352,13 @@
 }
 
 /* `hidden` alone would lose to any `display` we put on this wrapper later. */
-.rss-subscribe-view .rss-group-body[hidden] {
+.signal-rss-view .rss-group-body[hidden] {
   display: none;
 }
 
 /* ---------- rows ---------- */
 
-.rss-subscribe-view .rss-row {
+.signal-rss-view .rss-row {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -383,12 +383,12 @@
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-row:hover {
+  .signal-rss-view .rss-row:hover {
     background-color: var(--background-modifier-hover);
   }
 }
 
-.rss-subscribe-view .rss-row.is-active {
+.signal-rss-view .rss-row.is-active {
   background-color: var(--background-modifier-hover);
   box-shadow: inset 2px 0 0 var(--interactive-accent);
   color: var(--text-normal);
@@ -396,19 +396,19 @@
 
 /* The bare `button` rule sets `outline: none`; rows are keyboard-reachable, so
    put a visible focus ring back. */
-.rss-subscribe-view .rss-row:focus-visible,
-.rss-subscribe-view .rss-article-row:focus-visible {
+.signal-rss-view .rss-row:focus-visible,
+.signal-rss-view .rss-article-row:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: -2px;
 }
 
-.rss-subscribe-view .rss-icon-button:focus-visible,
-.rss-subscribe-view .rss-button:focus-visible {
+.signal-rss-view .rss-icon-button:focus-visible,
+.signal-rss-view .rss-button:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
 }
 
-.rss-subscribe-view .rss-row-label {
+.signal-rss-view .rss-row-label {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -416,7 +416,7 @@
   text-overflow: ellipsis;
 }
 
-.rss-subscribe-view .rss-row-count {
+.signal-rss-view .rss-row-count {
   flex: 0 0 auto;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
@@ -428,14 +428,14 @@
    what is not there yet instead of as a subscription. The plus sits in the
    chevron's own column (3px + 14px + 5px) so its label starts at 22px — the same
    inset a feed label gets from its 6px dot. */
-.rss-subscribe-view .rss-row-add {
+.signal-rss-view .rss-row-add {
   gap: 5px;
   padding-left: 3px;
   color: var(--text-faint);
   font-size: var(--font-ui-smaller);
 }
 
-.rss-subscribe-view .rss-row-add-icon {
+.signal-rss-view .rss-row-add-icon {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -444,12 +444,12 @@
   height: 14px;
 }
 
-.rss-subscribe-view .rss-row-add-icon svg {
+.signal-rss-view .rss-row-add-icon svg {
   width: 14px;
   height: 14px;
 }
 
-.rss-subscribe-view .rss-feed-dot {
+.signal-rss-view .rss-feed-dot {
   flex: 0 0 auto;
   width: 6px;
   height: 6px;
@@ -457,7 +457,7 @@
   background-color: var(--text-faint);
 }
 
-.rss-subscribe-view .rss-feed-dot.is-error {
+.signal-rss-view .rss-feed-dot.is-error {
   background-color: var(--text-error);
 }
 
@@ -470,7 +470,7 @@
    Two tracks only — the title block and the trailing star. The unread marker
    used to own a leading 6px track, which cost the title 14px (6 + the gap) for
    a dot that duplicated the title's own colour/weight cue. */
-.rss-subscribe-view .rss-article-row {
+.signal-rss-view .rss-article-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: 8px;
@@ -492,22 +492,22 @@
   appearance: none;
 }
 
-.rss-subscribe-view .rss-article-row:last-child {
+.signal-rss-view .rss-article-row:last-child {
   border-bottom-color: transparent;
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-article-row:hover {
+  .signal-rss-view .rss-article-row:hover {
     background-color: var(--background-modifier-hover);
   }
 }
 
-.rss-subscribe-view .rss-article-row.is-active {
+.signal-rss-view .rss-article-row.is-active {
   background-color: var(--background-modifier-hover);
   box-shadow: inset 2px 0 0 var(--interactive-accent);
 }
 
-.rss-subscribe-view .rss-article-body {
+.signal-rss-view .rss-article-body {
   min-width: 0;
 }
 
@@ -516,7 +516,7 @@
    Obsidian's bare `button` rule), so this element has to opt back into `nowrap`
    explicitly — and `text-overflow` only takes effect together with nowrap +
    overflow:hidden. A plain block (not `-webkit-box`) is enough for one line. */
-.rss-subscribe-view .rss-article-title {
+.signal-rss-view .rss-article-title {
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -527,12 +527,12 @@
   line-height: 1.45;
 }
 
-.rss-subscribe-view .rss-article-row.is-unread .rss-article-title {
+.signal-rss-view .rss-article-row.is-unread .rss-article-title {
   color: var(--text-normal);
   font-weight: var(--font-medium);
 }
 
-.rss-subscribe-view .rss-article-meta {
+.signal-rss-view .rss-article-meta {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -545,7 +545,7 @@
   line-height: 1.35;
 }
 
-.rss-subscribe-view .rss-article-source {
+.signal-rss-view .rss-article-source {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -553,14 +553,14 @@
   text-overflow: ellipsis;
 }
 
-.rss-subscribe-view .rss-article-time {
+.signal-rss-view .rss-article-time {
   flex: 0 0 auto;
 }
 
 /* The row uses `align-items: start`, which is right for the title block but
    pins a trailing-only decoration to the first line. `align-self: center` puts
    the star in the middle of the row's height instead. */
-.rss-subscribe-view .rss-article-star {
+.signal-rss-view .rss-article-star {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -570,18 +570,18 @@
   color: var(--color-yellow, var(--text-accent));
 }
 
-.rss-subscribe-view .rss-article-star svg {
+.signal-rss-view .rss-article-star svg {
   width: 13px;
   height: 13px;
 }
 
-.rss-subscribe-view .rss-dot-sep {
+.signal-rss-view .rss-dot-sep {
   color: var(--text-faint);
 }
 
 /* ---------- reader ---------- */
 
-.rss-subscribe-view .rss-reader-pane {
+.signal-rss-view .rss-reader-pane {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -590,7 +590,7 @@
   overflow: hidden;
 }
 
-.rss-subscribe-view .rss-reader-toolbar {
+.signal-rss-view .rss-reader-toolbar {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -599,13 +599,13 @@
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.rss-subscribe-view .rss-reader-toolbar .rss-icon-button {
+.signal-rss-view .rss-reader-toolbar .rss-icon-button {
   position: relative;
 }
 
 /* "Already saved" cue: a small accent dot on the save button. The destination
    path itself is carried in the button's aria-label / tooltip. */
-.rss-subscribe-view .rss-reader-toolbar .rss-icon-button.is-saved::after {
+.signal-rss-view .rss-reader-toolbar .rss-icon-button.is-saved::after {
   content: "";
   position: absolute;
   top: 1px;
@@ -616,84 +616,84 @@
   background: var(--interactive-accent);
 }
 
-.rss-subscribe-view .rss-reader-body {
+.signal-rss-view .rss-reader-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding: 16px 20px 48px;
 }
 
-.rss-subscribe-view .rss-reader-status {
+.signal-rss-view .rss-reader-status {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   padding: 4px 0 10px;
 }
 
-.rss-subscribe-view .rss-reader-status.is-pending {
+.signal-rss-view .rss-reader-status.is-pending {
   color: var(--text-accent);
 }
 
-.rss-subscribe-view .rss-content {
+.signal-rss-view .rss-content {
   color: var(--text-normal);
   font-size: var(--font-text-size);
   line-height: var(--line-height-normal);
   overflow-wrap: break-word;
 }
 
-.rss-subscribe-view .rss-content p,
-.rss-subscribe-view .rss-content div {
+.signal-rss-view .rss-content p,
+.signal-rss-view .rss-content div {
   margin: 0 0 1em;
 }
 
-.rss-subscribe-view .rss-content h1,
-.rss-subscribe-view .rss-content h2,
-.rss-subscribe-view .rss-content h3,
-.rss-subscribe-view .rss-content h4,
-.rss-subscribe-view .rss-content h5,
-.rss-subscribe-view .rss-content h6 {
+.signal-rss-view .rss-content h1,
+.signal-rss-view .rss-content h2,
+.signal-rss-view .rss-content h3,
+.signal-rss-view .rss-content h4,
+.signal-rss-view .rss-content h5,
+.signal-rss-view .rss-content h6 {
   margin: 1.4em 0 0.6em;
   line-height: 1.3;
 }
 
-.rss-subscribe-view .rss-content img {
+.signal-rss-view .rss-content img {
   max-width: 100%;
   height: auto;
   border-radius: var(--radius-s);
 }
 
-.rss-subscribe-view .rss-content img.is-broken {
+.signal-rss-view .rss-content img.is-broken {
   display: none;
 }
 
-.rss-subscribe-view .rss-content a {
+.signal-rss-view .rss-content a {
   color: var(--link-color);
   text-decoration: none;
 }
 
 @media (hover: hover) {
-  .rss-subscribe-view .rss-content a:hover {
+  .signal-rss-view .rss-content a:hover {
     text-decoration: underline;
   }
 }
 
-.rss-subscribe-view .rss-content ul,
-.rss-subscribe-view .rss-content ol {
+.signal-rss-view .rss-content ul,
+.signal-rss-view .rss-content ol {
   margin: 0 0 1em;
   padding-inline-start: 1.6em;
 }
 
-.rss-subscribe-view .rss-content li {
+.signal-rss-view .rss-content li {
   margin-bottom: 0.3em;
 }
 
-.rss-subscribe-view .rss-content blockquote {
+.signal-rss-view .rss-content blockquote {
   margin: 1em 0;
   padding: 2px 0 2px 12px;
   border-left: 3px solid var(--background-modifier-border);
   color: var(--text-muted);
 }
 
-.rss-subscribe-view .rss-content pre {
+.signal-rss-view .rss-content pre {
   margin: 0 0 1em;
   padding: 10px 12px;
   overflow-x: auto;
@@ -703,12 +703,12 @@
   line-height: 1.5;
 }
 
-.rss-subscribe-view .rss-content pre code {
+.signal-rss-view .rss-content pre code {
   padding: 0;
   background: none;
 }
 
-.rss-subscribe-view .rss-content code {
+.signal-rss-view .rss-content code {
   padding: 1px 4px;
   border-radius: var(--radius-s);
   background-color: var(--code-background);
@@ -716,32 +716,32 @@
   font-size: 0.9em;
 }
 
-.rss-subscribe-view .rss-content table {
+.signal-rss-view .rss-content table {
   width: 100%;
   margin: 0 0 1em;
   border-collapse: collapse;
   font-size: 0.92em;
 }
 
-.rss-subscribe-view .rss-content th,
-.rss-subscribe-view .rss-content td {
+.signal-rss-view .rss-content th,
+.signal-rss-view .rss-content td {
   padding: 6px 8px;
   border: 1px solid var(--background-modifier-border);
   text-align: left;
 }
 
-.rss-subscribe-view .rss-content th {
+.signal-rss-view .rss-content th {
   background-color: var(--background-secondary);
   font-weight: var(--font-semibold);
 }
 
-.rss-subscribe-view .rss-content hr {
+.signal-rss-view .rss-content hr {
   margin: 1.6em 0;
   border: none;
   border-top: 1px solid var(--background-modifier-border);
 }
 
-.rss-subscribe-view .rss-reader-footnote {
+.signal-rss-view .rss-reader-footnote {
   flex: 0 0 auto;
   padding: 6px 20px 10px;
   color: var(--text-faint);
@@ -750,7 +750,7 @@
 
 /* ---------- empty states ---------- */
 
-.rss-subscribe-view .rss-empty {
+.signal-rss-view .rss-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -761,25 +761,25 @@
   text-align: center;
 }
 
-.rss-subscribe-view .rss-empty-small {
+.signal-rss-view .rss-empty-small {
   padding: 14px 10px;
   align-items: flex-start;
   text-align: left;
 }
 
-.rss-subscribe-view .rss-empty-title {
+.signal-rss-view .rss-empty-title {
   color: var(--text-normal);
   font-size: var(--font-ui-small);
   font-weight: var(--font-medium);
 }
 
-.rss-subscribe-view .rss-empty-hint {
+.signal-rss-view .rss-empty-hint {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   line-height: 1.5;
 }
 
-.rss-subscribe-view .rss-empty-actions {
+.signal-rss-view .rss-empty-actions {
   margin-top: 6px;
 }
 
@@ -792,7 +792,7 @@
    is also what lines the pills up with the `setting-item` cards underneath.
 
    Every declaration below is fighting an Obsidian default, and the selectors
-   carry the `.rss-subscribe-settings` prefix (0,2,0) for that reason:
+   carry the `.signal-rss-settings` prefix (0,2,0) for that reason:
      - bare `button { height: var(--input-height) }` (0,0,1) would clamp every
        tab to 30px, so `height` is written out by hand;
      - `button:not(.clickable-icon)` (0,1,1) paints a grey background and an
@@ -806,7 +806,7 @@
    row below it; the app sets headings from `--font-ui-large`, so a tab is a
    label, not a heading. Those declarations live on `.rss-settings-tab`, not
    here -- see the note there for why. */
-.rss-subscribe-settings .rss-settings-tabs {
+.signal-rss-settings .rss-settings-tabs {
   /* The bar scrolls with the panel instead of pinning itself to the top. It is
      the first thing in the settings page, so pinning it meant paying a
      permanent 36px of screen height for navigation the user reads once. That
@@ -829,7 +829,7 @@
   color: var(--text-muted);
 }
 
-.rss-subscribe-settings .rss-settings-tab {
+.signal-rss-settings .rss-settings-tab {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
@@ -864,26 +864,26 @@
   appearance: none;
 }
 
-.rss-subscribe-settings .rss-settings-tab svg {
+.signal-rss-settings .rss-settings-tab svg {
   flex: 0 0 auto;
   width: 17px;
   height: 17px;
 }
 
-.rss-subscribe-settings .rss-settings-tab.is-active {
+.signal-rss-settings .rss-settings-tab.is-active {
   background-color: var(--background-modifier-hover);
   color: var(--text-normal);
 }
 
 @media (hover: hover) {
-  .rss-subscribe-settings .rss-settings-tab:not(.is-active):hover {
+  .signal-rss-settings .rss-settings-tab:not(.is-active):hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);
   }
 }
 
 /* The bare `button` rule sets `outline: none`, so the ring has to come back. */
-.rss-subscribe-settings .rss-settings-tab:focus-visible {
+.signal-rss-settings .rss-settings-tab:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
 }
@@ -892,7 +892,7 @@
    reference crop stops right below the divider, so this one is a judgement
    call rather than a measurement: 16px is the padding a `setting-item` card
    carries on its own sides, which keeps the gap in the same rhythm. */
-.rss-subscribe-settings .rss-settings-body {
+.signal-rss-settings .rss-settings-body {
   padding-top: var(--size-4-4);
 }
 
@@ -908,7 +908,7 @@
    1.13 reworked the settings page (it ships a `SettingGroup` class now), so
    leaning on whatever the default layout happens to be is how this silently
    stops working after an app update. */
-.rss-subscribe-settings .setting-item.rss-subscribe-setting-stacked {
+.signal-rss-settings .setting-item.signal-rss-setting-stacked {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -917,8 +917,8 @@
 
 /* `width: 100%` on both children is what actually stretches them; the control
    box would otherwise stay at its content width in a column. */
-.rss-subscribe-settings .rss-subscribe-setting-stacked .setting-item-info,
-.rss-subscribe-settings .rss-subscribe-setting-stacked .setting-item-control {
+.signal-rss-settings .signal-rss-setting-stacked .setting-item-info,
+.signal-rss-settings .signal-rss-setting-stacked .setting-item-control {
   flex: 0 0 auto;
   width: 100%;
   min-width: 0;
@@ -926,13 +926,13 @@
 
 /* The control box right-aligns its contents, which in a column leaves the
    textarea floating away from the left edge. */
-.rss-subscribe-settings .rss-subscribe-setting-stacked .setting-item-control {
+.signal-rss-settings .signal-rss-setting-stacked .setting-item-control {
   justify-content: flex-start;
 }
 
 /* Scoped to the stacked rows on purpose: single-line inputs elsewhere in this
    tab keep the usual right-aligned control. */
-.rss-subscribe-settings .rss-subscribe-setting-stacked .rss-subscribe-template-input {
+.signal-rss-settings .signal-rss-setting-stacked .signal-rss-template-input {
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -940,7 +940,7 @@
   line-height: 1.5;
 }
 
-.rss-subscribe-settings .rss-subscribe-template-input {
+.signal-rss-settings .signal-rss-template-input {
   width: 100%;
   font-family: var(--font-monospace);
   font-size: var(--font-ui-smaller);
@@ -952,10 +952,10 @@
    `background-color: var(--interactive-normal)` plus `box-shadow:
    var(--input-shadow)` — that rule is (0,1,1), so a bare class selector loses
    to it and the buttons come out as theme-grey blocks. The
-   `.rss-subscribe-settings` prefix puts these rules at (0,2,0) and wins, which
+   `.signal-rss-settings` prefix puts these rules at (0,2,0) and wins, which
    is also why every declaration that Obsidian sets on bare `button` (height,
    padding, border, radius, appearance) is written out here rather than assumed. */
-.rss-subscribe-settings .rss-toolbar-btn {
+.signal-rss-settings .rss-toolbar-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -977,19 +977,19 @@
   appearance: none;
 }
 
-.rss-subscribe-settings .rss-toolbar-btn svg {
+.signal-rss-settings .rss-toolbar-btn svg {
   flex: 0 0 auto;
   width: 15px;
   height: 15px;
 }
 
 @media (hover: hover) {
-  .rss-subscribe-settings .rss-toolbar-btn:hover {
+  .signal-rss-settings .rss-toolbar-btn:hover {
     background-color: var(--interactive-hover);
   }
 }
 
-.rss-subscribe-settings .rss-toolbar-btn:focus-visible {
+.signal-rss-settings .rss-toolbar-btn:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
 }
@@ -1007,20 +1007,20 @@
    app's default text-field styling (border, background, shadow) and matches the
    rest of the panel. The only custom touch is the clear button, which is hidden
    until the user has typed something. */
-.rss-subscribe-settings .rss-feed-search {
+.signal-rss-settings .rss-feed-search {
   /* Keep a little breathing room between this row and the table below. */
   margin-bottom: 4px;
 }
 
-.rss-subscribe-settings .rss-feed-search input {
+.signal-rss-settings .rss-feed-search input {
   width: 200px;
 }
 
-.rss-subscribe-settings .rss-feed-search .rss-feed-search-clear {
+.signal-rss-settings .rss-feed-search .rss-feed-search-clear {
   display: none;
 }
 
-.rss-subscribe-settings .rss-feed-search.has-query .rss-feed-search-clear {
+.signal-rss-settings .rss-feed-search.has-query .rss-feed-search-clear {
   display: inline-flex;
 }
 
@@ -1032,19 +1032,19 @@
    line of height. It is still matched by the search box above, which is where
    an address is actually worth typing. A feed with no title at all still falls
    back to its address, because the alternative is an unlabelled row. */
-.rss-subscribe-settings .rss-feed-table {
+.signal-rss-settings .rss-feed-table {
   margin-top: 2px;
 }
 
-.rss-subscribe-settings .rss-feed-thead,
-.rss-subscribe-settings .rss-feed-row {
+.signal-rss-settings .rss-feed-thead,
+.signal-rss-settings .rss-feed-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 130px 96px;
   gap: 12px;
   align-items: center;
 }
 
-.rss-subscribe-settings .rss-feed-thead {
+.signal-rss-settings .rss-feed-thead {
   padding: 0 4px 7px;
   border-bottom: 1px solid var(--background-modifier-border);
   color: var(--text-faint);
@@ -1052,11 +1052,11 @@
   line-height: 1.4;
 }
 
-.rss-subscribe-settings .rss-feed-thead > span:last-child {
+.signal-rss-settings .rss-feed-thead > span:last-child {
   text-align: right;
 }
 
-.rss-subscribe-settings .rss-feed-row {
+.signal-rss-settings .rss-feed-row {
   /* With the address line gone this is what sets the row height: one 13px line
      plus the 6px padding comes to ~30px, and the floor keeps the rows from
      crowding each other the way a bare list would. */
@@ -1065,17 +1065,17 @@
   border-bottom: 1px solid var(--divider-color);
 }
 
-.rss-subscribe-settings .rss-feed-row:last-child {
+.signal-rss-settings .rss-feed-row:last-child {
   border-bottom-color: transparent;
 }
 
 @media (hover: hover) {
-  .rss-subscribe-settings .rss-feed-row:hover {
+  .signal-rss-settings .rss-feed-row:hover {
     background-color: var(--background-modifier-hover);
   }
 }
 
-.rss-subscribe-settings .rss-feed-cell {
+.signal-rss-settings .rss-feed-cell {
   min-width: 0;
 }
 
@@ -1087,7 +1087,7 @@
    (the "count + three buttons" row). It used to be `--font-ui-medium` (15px),
    which was right against the older 15px rows and is now a step too large: the
    app moved its own rows down to 13px and this list had not followed. */
-.rss-subscribe-settings .rss-feed-title {
+.signal-rss-settings .rss-feed-title {
   display: block;
   min-width: 0;
   overflow: hidden;
@@ -1101,7 +1101,7 @@
 
 /* 12px, matching `.setting-item-description`: the group column is the secondary
    fact on the row, and at 13px it read as loudly as the title next to it. */
-.rss-subscribe-settings .rss-feed-group {
+.signal-rss-settings .rss-feed-group {
   display: block;
   min-width: 0;
   overflow: hidden;
@@ -1112,13 +1112,13 @@
   line-height: 1.4;
 }
 
-.rss-subscribe-settings .rss-feed-group.is-none {
+.signal-rss-settings .rss-feed-group.is-none {
   color: var(--text-faint);
 }
 
 /* Square, bordered icon buttons. Same (0,2,0) reasoning as the toolbar: without
    the prefix these render as theme-grey pills at Obsidian's input height. */
-.rss-subscribe-settings .rss-feed-actions {
+.signal-rss-settings .rss-feed-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1126,7 +1126,7 @@
   flex: 0 0 auto;
 }
 
-.rss-subscribe-settings .rss-feed-action {
+.signal-rss-settings .rss-feed-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1145,30 +1145,30 @@
   appearance: none;
 }
 
-.rss-subscribe-settings .rss-feed-action svg {
+.signal-rss-settings .rss-feed-action svg {
   width: 15px;
   height: 15px;
 }
 
 @media (hover: hover) {
-  .rss-subscribe-settings .rss-feed-action:hover {
+  .signal-rss-settings .rss-feed-action:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);
   }
 
-  .rss-subscribe-settings .rss-feed-action.is-danger:hover {
+  .signal-rss-settings .rss-feed-action.is-danger:hover {
     border-color: var(--color-red);
     color: var(--color-red);
   }
 }
 
-.rss-subscribe-settings .rss-feed-action:focus-visible {
+.signal-rss-settings .rss-feed-action:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 1px;
 }
 
 /* Empty state, and the "nothing matches" line that replaces the rows. */
-.rss-subscribe-settings .rss-feed-empty {
+.signal-rss-settings .rss-feed-empty {
   margin: 0;
   padding: 16px 4px;
   color: var(--text-muted);
@@ -1184,39 +1184,39 @@
      count about 20px — enough for one character per line. The row turns into a
      column: count on top, buttons underneath. Measured at a 358px pane, where
      the count used to wrap to seven lines. */
-  .rss-subscribe-settings .setting-item.rss-feed-toolbar {
+  .signal-rss-settings .setting-item.rss-feed-toolbar {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
 
-  .rss-subscribe-settings .setting-item.rss-feed-toolbar .setting-item-info,
-  .rss-subscribe-settings .setting-item.rss-feed-toolbar .setting-item-control {
+  .signal-rss-settings .setting-item.rss-feed-toolbar .setting-item-info,
+  .signal-rss-settings .setting-item.rss-feed-toolbar .setting-item-control {
     flex: 0 0 auto;
     width: 100%;
     min-width: 0;
   }
 
-  .rss-subscribe-settings .setting-item.rss-feed-toolbar .setting-item-control {
+  .signal-rss-settings .setting-item.rss-feed-toolbar .setting-item-control {
     justify-content: flex-start;
     flex-wrap: wrap;
   }
 
-  .rss-subscribe-settings .rss-feed-thead,
-  .rss-subscribe-settings .rss-feed-row {
+  .signal-rss-settings .rss-feed-thead,
+  .signal-rss-settings .rss-feed-row {
     grid-template-columns: minmax(0, 1fr) 88px 84px;
     gap: 8px;
   }
 
-  .rss-subscribe-settings .rss-feed-action {
+  .signal-rss-settings .rss-feed-action {
     width: 26px;
     height: 26px;
   }
 
 }
 
-.rss-subscribe-file-input {
+.signal-rss-file-input {
   display: none;
 }
 
@@ -1251,67 +1251,67 @@
    padding that clears the gesture bar. */
 /* The input already carries the platform's input height on a touch device, so
    the row's own padding is trimmed to keep the strip from growing past it. */
-.is-mobile .rss-subscribe-view .rss-search-bar {
+.is-mobile .signal-rss-view .rss-search-bar {
   padding: 5px 6px 4px;
 }
 
 /* The 28px box sits below iOS' 16px zoom trigger, so focusing it would scale
    the whole page. Use the platform input height and an explicit font size. */
-.is-mobile .rss-subscribe-view .rss-search {
+.is-mobile .signal-rss-view .rss-search {
   height: var(--input-height);
   font-size: 16px;
 }
 
-.is-mobile .rss-subscribe-view .rss-icon-button {
+.is-mobile .signal-rss-view .rss-icon-button {
   width: 38px;
   height: 38px;
 }
 
-.is-mobile .rss-subscribe-view .rss-icon-button svg {
+.is-mobile .signal-rss-view .rss-icon-button svg {
   width: 18px;
   height: 18px;
 }
 
-.is-mobile .rss-subscribe-view .rss-button {
+.is-mobile .signal-rss-view .rss-button {
   height: 38px;
   padding: 3px 12px;
 }
 
-.is-mobile .rss-subscribe-view .rss-row {
+.is-mobile .signal-rss-view .rss-row {
   padding: 9px 8px;
 }
 
-.is-mobile .rss-subscribe-view .rss-group-toggle {
+.is-mobile .signal-rss-view .rss-group-toggle {
   padding: 8px 8px 8px 3px;
 }
 
-.is-mobile .rss-subscribe-view .rss-article-row {
+.is-mobile .signal-rss-view .rss-article-row {
   padding: 12px 10px 13px;
 }
 
-.is-mobile .rss-subscribe-view .rss-article-list {
+.is-mobile .signal-rss-view .rss-article-list {
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
-.is-mobile .rss-subscribe-view .rss-empty {
+.is-mobile .signal-rss-view .rss-empty {
   padding: 24px 14px;
 }
 
-.is-mobile .rss-subscribe-view .rss-reader-header {
+.is-mobile .signal-rss-view .rss-reader-header {
   padding: 10px 14px 8px;
 }
 
 /* On a phone the toolbar keeps its own row; the five icon buttons are narrow
    enough to stay on one line even at 360px wide. */
-.is-mobile .rss-subscribe-view .rss-reader-toolbar {
+.is-mobile .signal-rss-view .rss-reader-toolbar {
   flex-wrap: nowrap;
 }
 
-.is-mobile .rss-subscribe-view .rss-reader-body {
+.is-mobile .signal-rss-view .rss-reader-body {
   padding: 14px 14px calc(40px + env(safe-area-inset-bottom, 0px));
 }
 
-.is-mobile .rss-subscribe-view .rss-reader-footnote {
+.is-mobile .signal-rss-view .rss-reader-footnote {
   padding: 6px 14px 10px;
 }
 
