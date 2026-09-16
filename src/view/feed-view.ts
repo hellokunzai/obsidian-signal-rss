@@ -218,18 +218,19 @@ export class RssSubscribeView extends ItemView {
    * Reflect the picked article in the tab label and the centered view header.
    * Obsidian only reads getDisplayText() once when the leaf is built, so we push
    * the change to both DOM nodes directly. The tab title element is a runtime
-   * field on WorkspaceLeaf; the view header title is queried by its class, since
-   * its accessor is not part of the public typings.
+   * field on WorkspaceLeaf; the view header title is reached through the view's
+   * own DOM instead of a runtime field, which is absent on some builds.
    */
   private updateDisplayTitle(title: string): void {
-    if (title === this.displayTitle) return;
     this.displayTitle = title;
     const leaf = this.leaf as unknown as {
       tabHeaderInnerTitleEl?: HTMLElement;
-      viewHeaderEl?: HTMLElement;
     };
     if (leaf.tabHeaderInnerTitleEl) leaf.tabHeaderInnerTitleEl.textContent = title;
-    const headerTitle = leaf.viewHeaderEl?.querySelector(".view-header-title") as HTMLElement | null;
+    // .workspace-leaf-content's previous sibling is the view header; walk up to
+    // the leaf and query by class so this keeps working across versions.
+    const leafEl = this.containerEl.closest(".workspace-leaf");
+    const headerTitle = leafEl?.querySelector(".view-header-title") as HTMLElement | null;
     if (headerTitle) headerTitle.textContent = title;
   }
 
