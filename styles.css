@@ -590,35 +590,30 @@
   overflow: hidden;
 }
 
-.rss-subscribe-view .rss-reader-header {
+.rss-subscribe-view .rss-reader-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 2px;
   flex: 0 0 auto;
-  padding: 12px 20px 10px;
+  padding: 6px 16px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.rss-subscribe-view .rss-reader-titlerow {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+.rss-subscribe-view .rss-reader-toolbar .rss-icon-button {
+  position: relative;
 }
 
-.rss-subscribe-view .rss-reader-title {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  color: var(--text-normal);
-  font-size: 1.15em;
-  font-weight: var(--font-semibold);
-  line-height: 1.35;
-}
-
-.rss-subscribe-view .rss-reader-more {
-  flex: 0 0 auto;
-  margin-left: 4px;
-  height: var(--clickable-icon-height, 24px);
+/* "Already saved" cue: a small accent dot on the save button. The destination
+   path itself is carried in the button's aria-label / tooltip. */
+.rss-subscribe-view .rss-reader-toolbar .rss-icon-button.is-saved::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--interactive-accent);
 }
 
 .rss-subscribe-view .rss-reader-body {
@@ -1306,15 +1301,10 @@
   padding: 10px 14px 8px;
 }
 
-/* On a phone the title keeps its own row; the single "more" trigger sits to its
-   right and only opens the action menu when tapped, so the headline is never
-   squeezed down to a couple of characters. */
-.is-mobile .rss-subscribe-view .rss-reader-titlerow {
-  flex-wrap: wrap;
-}
-
-.is-mobile .rss-subscribe-view .rss-reader-title {
-  flex: 1 1 auto;
+/* On a phone the toolbar keeps its own row; the five icon buttons are narrow
+   enough to stay on one line even at 360px wide. */
+.is-mobile .rss-subscribe-view .rss-reader-toolbar {
+  flex-wrap: nowrap;
 }
 
 .is-mobile .rss-subscribe-view .rss-reader-body {

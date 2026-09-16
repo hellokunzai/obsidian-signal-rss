@@ -1,11 +1,11 @@
-import { ItemView, Menu, Notice, setIcon } from "obsidian";
+import { ItemView, Notice } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import type RssSubscribePlugin from "../main";
 import { t } from "../i18n";
 import type { ArticleRef } from "../core/store";
 import { insertSafeHtml } from "../core/sanitize";
 import { VIEW_TYPE_RSS_SUBSCRIBE } from "./constants";
-import { openExternal, textButton } from "./dom";
+import { iconButton, openExternal, textButton } from "./dom";
 
 /**
  * The reader tab. The subscription list lives in the right sidebar; this view
@@ -135,25 +135,59 @@ export class RssSubscribeView extends ItemView {
       return;
     }
 
-    const { article } = ref;
+    const { article, feed } = ref;
     this.updateDisplayTitle(article.title || article.link || t("view.title"));
 
-    const header = pane.createDiv({ cls: "rss-reader-header" });
-    const titleRow = header.createDiv({ cls: "rss-reader-titlerow" });
-    titleRow.createEl("h2", { cls: "rss-reader-title", text: article.title || article.link });
+    // One-row toolbar of per-article actions, sitting above the body. The title
+    // itself only lives on the tab and the centered view header, so we do not
+    // repeat it here.
+    const toolbar = pane.createDiv({ cls: "rss-reader-toolbar" });
 
-    // All per-article actions now live behind a single "more" trigger, so the
-    // header stays uncluttered. The menu is an Obsidian Menu (see openReaderMenu).
-    const more = titleRow.createEl("button", {
-      cls: "clickable-icon rss-reader-more",
-      attr: { "aria-label": t("view.action.more"), title: t("view.action.more") },
+    const starBtn = iconButton(
+      toolbar,
+      article.starred ? "star-off" : "star",
+      article.starred ? t("view.action.unstar") : t("view.action.star"),
+      () => {
+        this.plugin.store.update(feed.id, article.id, { starred: !article.starred });
+        this.plugin.store.markDirty(feed.id);
+        void this.plugin.persistCache();
+        this.plugin.notifyViews();
+        this.plugin.updateRibbonBadge();
+      }
+    );
+    if (article.starred) starBtn.classList.add("is-on");
+
+    iconButton(
+      toolbar,
+      article.read ? "mail" : "mail-open",
+      article.read ? t("view.action.markUnread") : t("view.action.markRead"),
+      () => {
+        this.plugin.store.update(feed.id, article.id, { read: !article.read });
+        this.plugin.store.markDirty(feed.id);
+        void this.plugin.persistCache();
+        this.plugin.notifyViews();
+        this.plugin.updateRibbonBadge();
+      }
+    );
+
+    iconButton(toolbar, "download", t("view.action.fetchFulltext"), () => {
+      void this.forceFulltext(ref);
     });
-    setIcon(more, "more-vertical");
-    more.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      ev.preventDefault();
-      this.openReaderMenu(ev, ref);
+
+    iconButton(toolbar, "external-link", t("view.action.openExternal"), () => {
+      openExternal(article.link);
     });
+
+    const saveBtn = iconButton(toolbar, "file-plus-2", t("view.action.save"), () => {
+      void this.plugin.saveArticle(ref);
+    });
+    if (article.savedPath) {
+      // Echo the "already saved" hint that used to live in the removed meta row:
+      // a small accent dot on the button plus the destination in the tooltip.
+      saveBtn.classList.add("is-saved");
+      const tip = t("view.meta.saved", { path: article.savedPath });
+      saveBtn.setAttribute("aria-label", tip);
+    }
 
     const body = pane.createDiv({ cls: "rss-reader-body" });
     if (this.pendingFulltext === article.id) {
@@ -183,80 +217,20 @@ export class RssSubscribeView extends ItemView {
   /**
    * Reflect the picked article in the tab label and the centered view header.
    * Obsidian only reads getDisplayText() once when the leaf is built, so we push
-   * the change to both DOM nodes directly. The runtime fields exist on
-   * WorkspaceLeaf but are not in the type defs, hence the narrow cast.
+   * the change to both DOM nodes directly. The tab title element is a runtime
+   * field on WorkspaceLeaf; the view header title is queried by its class, since
+   * its accessor is not part of the public typings.
    */
   private updateDisplayTitle(title: string): void {
     if (title === this.displayTitle) return;
     this.displayTitle = title;
     const leaf = this.leaf as unknown as {
       tabHeaderInnerTitleEl?: HTMLElement;
-      viewHeaderTitleEl?: HTMLElement;
+      viewHeaderEl?: HTMLElement;
     };
     if (leaf.tabHeaderInnerTitleEl) leaf.tabHeaderInnerTitleEl.textContent = title;
-    if (leaf.viewHeaderTitleEl) leaf.viewHeaderTitleEl.textContent = title;
-  }
-
-  private openReaderMenu(ev: MouseEvent, ref: ArticleRef): void {
-    const { article, feed } = ref;
-    const menu = new Menu();
-
-    menu.addItem((item) => {
-      item
-        .setTitle(article.starred ? t("view.action.unstar") : t("view.action.star"))
-        .setIcon(article.starred ? "star-off" : "star")
-        .onClick(() => {
-          this.plugin.store.update(feed.id, article.id, { starred: !article.starred });
-          this.plugin.store.markDirty(feed.id);
-          void this.plugin.persistCache();
-          this.plugin.notifyViews();
-          this.plugin.updateRibbonBadge();
-        });
-    });
-
-    menu.addItem((item) => {
-      item
-        .setTitle(article.read ? t("view.action.markUnread") : t("view.action.markRead"))
-        .setIcon(article.read ? "mail" : "mail-open")
-        .onClick(() => {
-          this.plugin.store.update(feed.id, article.id, { read: !article.read });
-          this.plugin.store.markDirty(feed.id);
-          void this.plugin.persistCache();
-          this.plugin.notifyViews();
-          this.plugin.updateRibbonBadge();
-        });
-    });
-
-    menu.addItem((item) => {
-      item
-        .setTitle(t("view.action.fetchFulltext"))
-        .setIcon("download")
-        .onClick(() => void this.forceFulltext(ref));
-    });
-
-    menu.addItem((item) => {
-      item
-        .setTitle(t("view.action.openExternal"))
-        .setIcon("external-link")
-        .onClick(() => openExternal(article.link));
-    });
-
-    menu.addSeparator();
-
-    menu.addItem((item) => {
-      const mi = item.setTitle(t("view.action.save")).setIcon("file-plus-2");
-      // Echo the "already saved" hint that used to live in the removed meta row,
-      // so the user can still see where the note went. setSubtitle exists on the
-      // runtime MenuItem (Obsidian >=1.4) but is missing from the local typings.
-      if (article.savedPath) {
-        (mi as unknown as { setSubtitle?: (s: string) => void }).setSubtitle?.(
-          t("view.meta.saved", { path: article.savedPath })
-        );
-      }
-      mi.onClick(() => void this.plugin.saveArticle(ref));
-    });
-
-    menu.showAtMouseEvent(ev);
+    const headerTitle = leaf.viewHeaderEl?.querySelector(".view-header-title") as HTMLElement | null;
+    if (headerTitle) headerTitle.textContent = title;
   }
 
   private decorateContent(content: HTMLElement): void {
