@@ -1,6 +1,7 @@
 name: Beta (BRAT)
 
-# commit message 里带 [beta] 发预发布、带 [rc] 发候选版并清理本轮 beta；普通 commit 不触发。
+# commit message **首行以** [beta] 或 [rc] 开头时发预发布（[rc] 同时清理旧的预发布）；普通 commit 不触发。
+# 只认首行开头，是为了避免「正文里描述发版流程」的提交把预发布误发出去。
 # 预发布版本用 BRAT 插件安装测试：https://github.com/TfTHacker/obsidian42-brat
 
 on:
@@ -16,7 +17,8 @@ concurrency:
 
 jobs:
   beta:
-    if: contains(github.event.head_commit.message || '', '[beta]') || contains(github.event.head_commit.message || '', '[rc]')
+    # startsWith 而非 contains：提交信息正文里提到关键字（例如在描述发版流程）不应触发发版。
+    if: startsWith(github.event.head_commit.message || '', '[beta]') || startsWith(github.event.head_commit.message || '', '[rc]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -40,7 +42,8 @@ jobs:
           MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           BASE=$(node -p "require('./manifest.json').version")
-          if printf '%s' "${MESSAGE}" | grep -q '\[rc\]'; then
+          # 与 job 级 if 同一判据：只看首行，避免正文里的关键字改变频道
+          if printf '%s' "${MESSAGE}" | head -n 1 | grep -q '\[rc\]'; then
             CHANNEL="rc"
           else
             CHANNEL="beta"
@@ -48,15 +51,18 @@ jobs:
           echo "tag=${BASE}-${CHANNEL}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "channel=${CHANNEL}" >> "$GITHUB_OUTPUT"
 
-      - name: Clean up previous beta prereleases
+      - name: Clean up previous prereleases
         if: steps.tag.outputs.channel == 'rc'
         env:
           GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ steps.tag.outputs.tag }}
         run: |
           gh release list --limit 100 --json tagName,isPrerelease \
-            --jq '.[] | select(.isPrerelease) | select(.tagName | contains("-beta.")) | .tagName' \
+            --jq '.[] | select(.isPrerelease) | select((.tagName | contains("-beta.")) or (.tagName | contains("-rc."))) | .tagName' \
           | while read -r tag; do
-              [ -n "${tag}" ] && gh release delete "${tag}" --yes --cleanup-tag || true
+              if [ -n "${tag}" ] && [ "${tag}" != "${CURRENT}" ]; then
+                gh release delete "${tag}" --yes --cleanup-tag || true
+              fi
             done
 
       - name: Publish prerelease
